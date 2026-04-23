@@ -142,24 +142,32 @@
 
     </dependencies>
 
+
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <!-- IMPORTANT : On met à false pour éviter l'erreur d'encodage MalformedInputException -->
+                <filtering>false</filtering>
+            </resource>
+        </resources>
+
         <plugins>
-            <!-- Plugin Spring Boot existant -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
 
-            <!-- AJOUT DU PLUGIN DE RESSOURCES (POUR FIXER LES ENCODAGES) -->
+            <!-- AJOUT DU PLUGIN DE SÉCURITÉ : Plus stable que l'Action GitHub directe -->
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-resources-plugin</artifactId>
-                <version>3.3.1</version>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>9.0.9</version>
                 <configuration>
-                    <encoding>UTF-8</encoding>
+                    <format>HTML</format>
+                    <outputDirectory>${project.build.directory}/security-reports</outputDirectory>
                 </configuration>
             </plugin>
         </plugins>
     </build>
-
 </project>
