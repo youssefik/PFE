@@ -31,19 +31,31 @@ jobs:
         run: mvn clean package -DskipTests -Dfile.encoding=UTF-8
 
       # ÉTAPE 2 : Scan de Sécurité via Maven (Plus de problème JAVA_HOME)
-      - name: Security Scan (Dependency Check)
+      - name: Check NVD API key availability
+        id: nvd_key
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
           if [ -z "${NVD_API_KEY}" ]; then
-            echo "NVD_API_KEY secret is missing. Configure it in GitHub repository secrets." >&2
-            exit 1
+            echo "has_key=false" >> "$GITHUB_OUTPUT"
+            echo "NVD_API_KEY secret missing: skipping Dependency-Check scan."
+          else
+            echo "has_key=true" >> "$GITHUB_OUTPUT"
           fi
-          mvn org.owasp:dependency-check-maven:check
+
+      - name: Security Scan (Dependency Check)
+        if: steps.nvd_key.outputs.has_key == 'true'
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: mvn org.owasp:dependency-check-maven:check
+
+      - name: Security Scan skipped
+        if: steps.nvd_key.outputs.has_key != 'true'
+        run: echo "Dependency-Check skipped because NVD_API_KEY is not configured."
 
       # ÉTAPE 3 : Archivage du Rapport HTML
       - name: Upload Security Report
-        if: always()
+        if: always() && steps.nvd_key.outputs.has_key == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: security-report
