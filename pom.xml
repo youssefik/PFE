@@ -144,21 +144,19 @@
 
     <build>
         <plugins>
+            <!-- Plugin Spring Boot existant -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
 
-            <!-- AJOUT ICI : Fix de l'erreur MalformedInputException -->
+            <!-- AJOUT DU PLUGIN DE RESSOURCES (POUR FIXER LES ENCODAGES) -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
                 <version>3.3.1</version>
                 <configuration>
-                    <!-- Forcer la lecture en UTF-8 -->
                     <encoding>UTF-8</encoding>
-                    <!-- Empêcher le plugin de modifier les fichiers de propriétés qui contiennent des caractères spéciaux -->
-                    <propertiesEncoding>UTF-8</propertiesEncoding>
                 </configuration>
             </plugin>
         </plugins>
