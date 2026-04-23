@@ -32,7 +32,14 @@ jobs:
 
       # ÉTAPE 2 : Scan de Sécurité via Maven (Plus de problème JAVA_HOME)
       - name: Security Scan (Dependency Check)
-        run: mvn org.owasp:dependency-check-maven:check
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          if [ -z "${NVD_API_KEY}" ]; then
+            echo "NVD_API_KEY secret is missing. Configure it in GitHub repository secrets." >&2
+            exit 1
+          fi
+          mvn org.owasp:dependency-check-maven:check
 
       # ÉTAPE 3 : Archivage du Rapport HTML
       - name: Upload Security Report

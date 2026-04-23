@@ -24,6 +24,8 @@
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <dependency-check.version>9.0.9</dependency-check.version>
+        <dependency-check.failOnError>true</dependency-check.failOnError>
     </properties>
 
     <!-- Repository nécessaire pour Spring AI Milestone -->
@@ -162,8 +164,13 @@
             <plugin>
                 <groupId>org.owasp</groupId>
                 <artifactId>dependency-check-maven</artifactId>
-                <version>9.0.9</version>
+                <version>${dependency-check.version}</version>
                 <configuration>
+                    <!-- NVD API key is strongly recommended to avoid 403/404 during feed updates -->
+                    <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
+                    <nvdValidForHours>12</nvdValidForHours>
+                    <nvdMaxRetryCount>10</nvdMaxRetryCount>
+                    <failOnError>${dependency-check.failOnError}</failOnError>
                     <format>HTML</format>
                     <outputDirectory>${project.build.directory}/security-reports</outputDirectory>
                 </configuration>
