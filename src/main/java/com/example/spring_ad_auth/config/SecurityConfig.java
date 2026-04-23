@@ -3,9 +3,13 @@ package com.example.spring_ad_auth.config;
 import com.example.spring_ad_auth.service.UserService;
 import jakarta.servlet.DispatcherType;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.ldap.authentication.ad.ActiveDirectoryLdapAuthenticationProvider;
@@ -16,67 +20,61 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Configuration
+@EnableWebSecurity
 public class SecurityConfig {
 
-    @Autowired
-    private UserService userService; // Injectez votre nouveau service
+    @Value("${ad.domain}") private String adDomain;
+    @Value("${ad.url}") private String adUrl;
+    @Value("${ad.rootDn}") private String adRootDn;
+
+    @Autowired @Lazy
+    private AdUserDetailsContextMapper adContextMapper;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(authz -> authz
+                .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.ERROR).permitAll()
                         .requestMatchers("/login", "/public/**", "/h2-console/**").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/admin/users/**").hasRole("ADMIN")
                         .requestMatchers("/rssi/**").hasAnyRole("RSSI", "ADMIN")
-                        .requestMatchers("/compliance/**").hasAnyRole("RSSI", "ADMIN", "PILOTE")
+                        .requestMatchers("/planification/**").hasAnyRole("RSSI", "ADMIN", "PILOTE")
+                        .requestMatchers("/rssi/risk-editor/**").hasAnyRole("RSSI", "ADMIN")
+                        .requestMatchers("/compliance/editor/**").hasAnyRole("ADMIN", "RSSI")
+                        .requestMatchers("/compliance/sync/**").hasAnyRole("ADMIN", "RSSI")
+                        .requestMatchers("/excel/**").hasAnyRole("ADMIN", "RSSI")
+                        .requestMatchers("/audit/**").hasAnyRole("AUDITEUR", "ADMIN")
+                        .requestMatchers("/reporting/**").hasAnyRole("ADMIN", "RSSI", "DIRECTION")
+                        .requestMatchers("/api/ai/**").hasAnyRole("RSSI", "ADMIN")
                         .anyRequest().authenticated()
                 )
-                .headers(headers -> headers.frameOptions(f -> f.disable()))
+                .headers(h -> h.frameOptions(f -> f.disable()))
                 .formLogin(form -> form
                         .loginPage("/login")
-                        .loginProcessingUrl("/login")
                         .defaultSuccessUrl("/dashboard", true)
-                        // --- AJOUT : Le Handler qui s'exécute APRES la réussite de l'AD ---
-                        .successHandler((request, response, authentication) -> {
-                            String username = authentication.getName();
-                            userService.syncUserWithDB(username); // Appel de la synchro
-                            response.sendRedirect("/dashboard");  // Redirection finale
-                        })
+                        .failureUrl("/login?error")
                         .permitAll()
                 )
-                .logout(logout -> logout.logoutRequestMatcher(new AntPathRequestMatcher("/logout")).permitAll())
-                .authenticationProvider(activeDirectoryLdapAuthenticationProvider());
+                .logout(logout -> logout.logoutSuccessUrl("/login?logout").permitAll());
 
         return http.build();
     }
 
     @Bean
-    public ActiveDirectoryLdapAuthenticationProvider activeDirectoryLdapAuthenticationProvider() {
-        String domain = "test.local";
-        String url = "ldap://192.168.56.100:389";
-        String rootDn = "DC=test,DC=local";
-
+    public AuthenticationProvider activeDirectoryLdapAuthenticationProvider() {
+        // Utilisation du constructeur COMPLET qui marchait avant
         ActiveDirectoryLdapAuthenticationProvider provider =
-                new ActiveDirectoryLdapAuthenticationProvider(domain, url, rootDn);
+                new ActiveDirectoryLdapAuthenticationProvider(adDomain, adUrl, adRootDn);
 
         provider.setConvertSubErrorCodesToExceptions(true);
+
+        // --- CRUCIAL : On remet VOTRE filtre qui fonctionnait ---
         provider.setSearchFilter("(&(objectClass=user)(|(sAMAccountName={1})(userPrincipalName={0})))");
 
-        // Le mapper ne fait MAINTENANT que la transformation des rôles
-        provider.setAuthoritiesMapper((authorities) -> {
-            Set<GrantedAuthority> mapped = new HashSet<>();
-            for (GrantedAuthority authority : authorities) {
-                String group = authority.getAuthority().toUpperCase();
-                if (group.contains("SMSI_ADMINS")) mapped.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
-                if (group.contains("SMSI_RSSI")) mapped.add(new SimpleGrantedAuthority("ROLE_RSSI"));
-                if (group.contains("SMSI_AUDITORS")) mapped.add(new SimpleGrantedAuthority("ROLE_AUDITEUR"));
-                if (group.contains("SMSI_PILOTES")) mapped.add(new SimpleGrantedAuthority("ROLE_PILOTE"));
-            }
-            mapped.add(new SimpleGrantedAuthority("ROLE_USER"));
-            return mapped;
-        });
+        // --- ON FAIT LE LIEN AVEC LE MAPPER ---
+        provider.setUserDetailsContextMapper(adContextMapper);
 
         return provider;
     }

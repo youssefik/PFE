@@ -20,12 +20,20 @@ public class ElementSoA {
     private String efficacite; // "EFFICACE", "A_AMELIORER", "NON_EFFICACE"
     private LocalDate dateDerniereRevue;
 
+    // Ajoutez ces champs dans ElementSoA pour ne pas perdre les colonnes 6 et 7 d'Excel
+    private String dispositif; // Correspond à la colonne 6
+    private String responsable; // Correspond à la colonne 7
+
     @OneToOne
     @JoinColumn(name = "controle_id")
     private Controle controle; // Lien vers le référentiel créé au Sprint 1
 
     @OneToMany(mappedBy = "elementSoA", cascade = CascadeType.ALL)
     private List<Preuve> preuves;
+
+    private String couleur; // Nouveau : stockera par exemple "#ff0000"
+
+    private String couleurStyle; // Stockera "codeFond|codeTexte"
 
     // Getters/Setters
 
@@ -89,5 +97,37 @@ public class ElementSoA {
 
     public void setPreuves(List<Preuve> preuves) {
         this.preuves = preuves;
+    }
+
+    public String getCouleur() {
+        return couleur;
+    }
+
+    public void setCouleur(String couleur) {
+        this.couleur = couleur;
+    }
+
+
+    public String getCouleurStyle() {
+        return couleurStyle;
+    }
+    public void setCouleurStyle(String couleurStyle) {
+        this.couleurStyle = couleurStyle;
+    }
+
+    public String getDispositif() {
+        return dispositif;
+    }
+
+    public void setDispositif(String dispositif) {
+        this.dispositif = dispositif;
+    }
+
+    public String getResponsable() {
+        return responsable;
+    }
+
+    public void setResponsable(String responsable) {
+        this.responsable = responsable;
     }
 }

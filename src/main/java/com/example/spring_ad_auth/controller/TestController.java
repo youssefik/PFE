@@ -1,5 +1,9 @@
 package com.example.spring_ad_auth.controller;
 
+import com.example.spring_ad_auth.model.PlanificationTache;
+import com.example.spring_ad_auth.model.StatutTache;
+import com.example.spring_ad_auth.repository.TaskRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -12,21 +16,30 @@ import java.util.Collection;
 
 @Controller
 public class TestController {
+    @Autowired
+    TaskRepository taskRepository;
+
 
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         Collection<? extends GrantedAuthority> authorities = auth.getAuthorities();
 
-        // Ces booléens sont utilisés par les <c:if> dans la JSP
+        model.addAttribute("username", auth.getName());
         model.addAttribute("isAdmin", authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")));
         model.addAttribute("isRSSI", authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_RSSI")));
+        model.addAttribute("isAuditeur", authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_AUDITEUR")));
         model.addAttribute("isPilote", authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_PILOTE")));
-        model.addAttribute("username", auth.getName());
-        model.addAttribute("authorities", authorities);
+
+
+
+        PlanificationTache nextTask = taskRepository.findTopByStatutOrderByProchaineExecutionAsc(StatutTache.ACTIF);
+        model.addAttribute("nextTask", nextTask);
 
         return "dashboard";
     }
+
+
 
     @GetMapping("/admin/panel")
     @ResponseBody

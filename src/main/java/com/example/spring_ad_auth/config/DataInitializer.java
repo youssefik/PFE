@@ -3,11 +3,38 @@ package com.example.spring_ad_auth.config;
 import com.example.spring_ad_auth.model.ClauseISO;
 import com.example.spring_ad_auth.model.Perimetre;
 import com.example.spring_ad_auth.repository.ClauseISORepository;
+import com.example.spring_ad_auth.repository.ControleRepository;
 import com.example.spring_ad_auth.repository.PerimetreRepository;
+import com.example.spring_ad_auth.repository.RisqueRepository;
+import com.example.spring_ad_auth.service.RiskTableService;
+import com.example.spring_ad_auth.service.SoAIntegrationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
+@Component
+public class DataInitializer implements CommandLineRunner {
+
+    @Autowired private SoAIntegrationService syncService;
+    @Autowired private ControleRepository controleRepo;
+    @Autowired private RisqueRepository risqueRepo;
+    @Autowired private RiskTableService riskTableService;
+
+    @Override
+    public void run(String... args) throws Exception {
+        // Toujours lancer l'init des clauses 4-10
+        syncService.initManagementSystemClauses();
+
+        // Importer l'Annexe A si vide
+/*        if (syncService.isReferentielEmpty()) {
+            syncService.importReferentielFromExcel();
+        }*/
+    }
+
+}
+/*
 @Component
 public class DataInitializer implements CommandLineRunner {
 
@@ -50,4 +77,4 @@ public class DataInitializer implements CommandLineRunner {
             System.out.println(">> Périmètres initialisés.");
         }
     }
-}
+}*/

@@ -4,6 +4,111 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <title>Plan de Traitement | ISO 27001</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root { --iso-red: #D2010D; --iso-dark: #212121; }
+        body { background-color: #f4f4f4; font-family: 'Inter', sans-serif; }
+
+        /* Barre supérieure rouge style ISO */
+        .iso-header-red { border-top: 8px solid var(--iso-red); border-radius: 4px; }
+
+        .form-label { font-weight: 700; color: #555; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; }
+
+        /* Bouton Rouge ISO */
+        .btn-save {
+            background-color: var(--iso-red);
+            color: white;
+            font-weight: 800;
+            padding: 15px;
+            border: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: 0.3s;
+        }
+        .btn-save:hover { background-color: var(--iso-dark); color: white; transform: translateY(-2px); }
+
+        .risk-info-box { background-color: #f8f9fa; border: 1px solid #eee; border-radius: 4px; }
+
+        .badge-score { padding: 12px 20px; font-size: 1.1rem; font-weight: 800; border-radius: 4px; }
+    </style>
+</head>
+<body class="py-5">
+
+<div class="container">
+    <div class="card shadow-lg border-0 iso-header-red mx-auto" style="max-width: 850px;">
+
+        <div class="card-body p-5">
+            <h2 class="fw-bold text-uppercase border-bottom pb-3">Stratégie de Traitement du Risque</h2>
+
+            <div class="risk-info-box p-4 my-4 bg-light border-start border-5 border-danger">
+                <div class="row">
+                    <div class="col-md-6">
+                        <small class="fw-bold text-muted">SCÉNARIO IDENTIFIÉ :</small>
+                        <p class="mb-0">${risque.scenariosRisque}</p>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <span class="badge ${risque.couleurStyle} p-3 fs-6">BRUT : ${risque.niveauRisqueInitial}</span>
+                    </div>
+                </div>
+            </div>
+
+            <form action="/rssi/risques/traiter/save" method="post">
+                <input type="hidden" name="risqueId" value="${risque.id}">
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label">Option de Traitement (ISO 27005)</label>
+                        <select name="strategie" class="form-select border-2" required>
+                            <option value="Reduire">RÉDUCTION (Mesures de sécurité)</option>
+                            <option value="Transferer">TRANSFERT (Assurance / Outsource)</option>
+                            <option value="Eviter">ÉVITEMENT (Suppression activité)</option>
+                            <option value="Accepter">ACCEPTATION (Accord Direction)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Efficacité attendue des mesures (%)</label>
+                        <div class="input-group">
+                            <input type="number" name="efficaciteAttendue" class="form-control border-2" min="1" max="95" value="50">
+                            <span class="input-group-text">% de réduction</span>
+                        </div>
+                        <small class="text-muted">Sert au calcul du risque résiduel cible.</small>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label">Plan d'Actions de l'Annexe A (Mesures concrètes)</label>
+                    <textarea name="planTraitement" class="form-control border-2" rows="4"
+                              placeholder="Décrivez les mesures techniques (ex: A.8.12 Sauvegardes, A.5.15 Authentification...)" required></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-save w-100 py-3 shadow-lg">
+                    VALIDER LE PLAN DE TRAITEMENT
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="text-center mt-4 text-muted">
+        <small><i class="bi bi-info-circle me-1"></i> Ce formulaire génère l'historique de traitement pour l'audit de certification.</small>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
+<%--
+&lt;%&ndash;
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib uri="jakarta.tags.core" prefix="c" %>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
     <title>Traitement du Risque - SMSI</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
@@ -85,4 +190,84 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+</html>&ndash;%&gt;
+
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib uri="jakarta.tags.core" prefix="c" %>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Plan de Traitement | ISO 27001</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root { --iso-red: #D2010D; }
+        body { background-color: #f4f4f4; }
+        .iso-header-red { border-top: 8px solid var(--iso-red); }
+        .strategy-card { border: 2px solid #eee; transition: 0.3s; cursor: pointer; }
+        .form-label { font-weight: 700; color: #555; text-transform: uppercase; font-size: 0.8rem; }
+        .btn-save { background-color: var(--iso-red); color: white; font-weight: 800; padding: 12px; border: none; }
+    </style>
+</head>
+<body class="py-5">
+
+<div class="container">
+    <div class="card shadow-lg border-0 iso-header-red mx-auto" style="max-width: 850px;">
+        <div class="card-body p-5">
+            <div class="d-flex justify-content-between align-items-start mb-5">
+                <div>
+                    <h2 class="fw-bold text-uppercase">Traitement du Risque</h2>
+                    <p class="text-muted">Élaboration du Plan de Traitement (PTR)</p>
+                </div>
+                <div class="text-end">
+                    <span class="badge ${risque.score >= 15 ? 'bg-danger' : (risque.score >= 8 ? 'bg-warning text-dark' : 'bg-success')} p-3 fs-5">
+                        SCORE : ${risque.score}
+                    </span>
+                </div>
+            </div>
+
+            <div class="bg-light p-3 rounded mb-5 d-flex gap-4">
+                <div><small class="d-block text-muted">ACTIF IMPACTÉ</small><strong>${risque.actif.nom}</strong></div>
+                <div><small class="d-block text-muted">MENACE DÉTECTÉE</small><strong>${risque.menace}</strong></div>
+            </div>
+
+            <form action="/rssi/risques/traiter/save" method="post">
+                <input type="hidden" name="risqueId" value="${risque.id}">
+
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <label class="form-label">Option de traitement (6.1.3)</label>
+                        <select name="strategie" class="form-select form-select-lg" required>
+                            <option value="Reduire">Réduire (Mettre en place des mesures de sécurité)</option>
+                            <option value="Accepter">Accepter (Validation formelle par la direction)</option>
+                            <option value="Transferer">Transférer (Assurance, externalisation)</option>
+                            <option value="Eviter">Éviter (Suppression de l'actif ou de l'activité)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label">Actions de remédiation détaillées</label>
+                    <textarea name="planTraitement" class="form-control" rows="4" placeholder="Décrivez les mesures techniques (ex: pare-feu) ou organisationnelles (ex: formation)..." required></textarea>
+                </div>
+
+                <div class="row mb-5">
+                    <div class="col-md-6">
+                        <label class="form-label">Date limite d'application</label>
+                        <input type="date" name="dateCible" class="form-control" required>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-3">
+                    <button type="submit" class="btn btn-save flex-grow-1">VALIDER LE PLAN DE TRAITEMENT</button>
+                    <a href="/rssi/risques" class="btn btn-light px-4 py-3 fw-bold">ANNULER</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
 </html>
+--%>

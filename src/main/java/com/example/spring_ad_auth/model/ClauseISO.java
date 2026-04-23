@@ -24,6 +24,14 @@ public class ClauseISO {
     @OneToMany(mappedBy = "clauseISO", cascade = CascadeType.ALL)
     private List<Controle> controles;
 
+    @Column(columnDefinition = "TEXT")
+    private String exigences; // ex: "Identifier les enjeux internes et externes"
+
+    @ManyToOne
+    @JoinColumn(name = "parent_id")
+    private ClauseISO parent; // La clause 4 sera le parent de 4.1, 4.2, etc.
+
+
     // Getters et Setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -35,4 +43,20 @@ public class ClauseISO {
     public void setDescription(String description) { this.description = description; }
     public List<Controle> getControles() { return controles; }
     public void setControles(List<Controle> controles) { this.controles = controles; }
+
+    public String getExigences() {
+        return exigences;
+    }
+
+    public void setExigences(String exigences) {
+        this.exigences = exigences;
+    }
+
+    public ClauseISO getParent() {
+        return parent;
+    }
+
+    public void setParent(ClauseISO parent) {
+        this.parent = parent;
+    }
 }
