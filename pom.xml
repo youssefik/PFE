@@ -164,22 +164,15 @@
             <plugin>
                 <groupId>org.owasp</groupId>
                 <artifactId>dependency-check-maven</artifactId>
-                <version>${dependency-check.version}</version>
+                <version>9.0.9</version>
                 <configuration>
-                    <!-- On utilise une propriété Maven simple -->
-                    <nvdApiKey></nvdApiKey>
-
-                    <nvdValidForHours>12</nvdValidForHours>
-                    <nvdMaxRetryCount>10</nvdMaxRetryCount>
-
-                    <!-- Paramètres de stabilité CRUCIAUX pour éviter le 403 -->
-                    <nvdApiDelay>10000</nvdApiDelay>
-                    <connectionTimeout>60000</connectionTimeout>
-
                     <format>HTML</format>
                     <outputDirectory>${project.build.directory}/security-reports</outputDirectory>
+                    <autoUpdate>true</autoUpdate>
                 </configuration>
             </plugin>
+
+
         </plugins>
     </build>
 </project>
