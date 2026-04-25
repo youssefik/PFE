@@ -46,8 +46,11 @@ jobs:
       - name: Security Scan (Dependency Check)
         if: steps.nvd_key.outputs.has_key == 'true'
         env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-        run: mvn org.owasp:dependency-check-maven:check -DnvdApiDelay=8000
+          MY_NVD_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          mvn org.owasp:dependency-check-maven:check \
+            -DnvdApiKey=$MY_NVD_KEY \
+            -DautoUpdate=true
 
       - name: Security Scan skipped
         if: steps.nvd_key.outputs.has_key != 'true'

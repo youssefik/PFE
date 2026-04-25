@@ -166,11 +166,16 @@
                 <artifactId>dependency-check-maven</artifactId>
                 <version>${dependency-check.version}</version>
                 <configuration>
-                    <!-- NVD API key is strongly recommended to avoid 403/404 during feed updates -->
-                    <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
+                    <!-- On utilise une propriété Maven simple -->
+                    <nvdApiKey></nvdApiKey>
+
                     <nvdValidForHours>12</nvdValidForHours>
                     <nvdMaxRetryCount>10</nvdMaxRetryCount>
-                    <failOnError>${dependency-check.failOnError}</failOnError>
+
+                    <!-- Paramètres de stabilité CRUCIAUX pour éviter le 403 -->
+                    <nvdApiDelay>10000</nvdApiDelay>
+                    <connectionTimeout>60000</connectionTimeout>
+
                     <format>HTML</format>
                     <outputDirectory>${project.build.directory}/security-reports</outputDirectory>
                 </configuration>
