@@ -36,7 +36,31 @@ public class ExcelService {
         return readGeneric(RISK_EXCEL_PATH, 25 , 0,5);
     }
 
-    private List<List<String>> readGenericFromLine(String path, int maxCols, int sheetIdx, int startRow) throws IOException {
+    // Dans ExcelService.java
+    List<List<String>> readGenericFromLine(String path, int maxCols, int sheetIdx, int startRow) throws IOException {
+        List<List<String>> result = new ArrayList<>();
+        try (FileInputStream fis = new FileInputStream(new File(path));
+             Workbook wb = new XSSFWorkbook(fis)) {
+
+            Sheet sheet = wb.getSheetAt(sheetIdx);
+            DataFormatter formatter = new DataFormatter(); // INDISPENSABLE pour les dates
+
+            for (int i = startRow; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) continue;
+
+                List<String> rowData = new ArrayList<>();
+                for (int j = 0; j < maxCols; j++) {
+                    Cell cell = row.getCell(j, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                    // On utilise le formateur officiel de POI pour respecter le format Excel
+                    rowData.add(formatter.formatCellValue(cell));
+                }
+                result.add(rowData);
+            }
+        }
+        return result;
+    }
+/*    List<List<String>> readGenericFromLine(String path, int maxCols, int sheetIdx, int startRow) throws IOException {
         List<List<String>> result = new ArrayList<>();
         try (FileInputStream fis = new FileInputStream(new File(path));
              Workbook wb = new XSSFWorkbook(fis)) {
@@ -53,7 +77,7 @@ public class ExcelService {
             }
         }
         return result;
-    }
+    }*/
 
 //    public void writeRisks(List<Map<String, Object>> risks) throws IOException {
 //        risks = propagateCategories(risks);
@@ -408,7 +432,7 @@ public class ExcelService {
     }
 
 
-    private void saveToExcel(String path, List<List<String>> data, int colLimit, int sheetIdx, int startIdx) throws IOException {
+    void saveToExcel(String path, List<List<String>> data, int colLimit, int sheetIdx, int startIdx) throws IOException {
         Workbook wb;
         try (FileInputStream fis = new FileInputStream(new File(path))) {
             wb = new XSSFWorkbook(fis);
@@ -604,6 +628,9 @@ public class ExcelService {
         }
         workbook.close();
     }
+
+
+
 }
 
 

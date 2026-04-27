@@ -3,6 +3,7 @@ package com.example.spring_ad_auth.controller;
 import com.example.spring_ad_auth.model.*;
 import com.example.spring_ad_auth.repository.*;
 import com.example.spring_ad_auth.service.AuditLogService;
+import com.example.spring_ad_auth.service.ImprovementService;
 import jakarta.transaction.Transactional;
 import org.antlr.v4.runtime.tree.pattern.ParseTreePattern;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,8 @@ public class AuditController {
     @Autowired private NonConformiteRepository ncRepo;
     @Autowired private ActionCorrectiveRepository actionRepo;
     @Autowired private ClauseISORepository clauseRepo;
+    @Autowired private  ImprovementService improvementService;
+    ;
 
     @PostMapping("/action/cloturer/{id}")
     public String closeAction(@PathVariable UUID id) {
@@ -433,7 +436,21 @@ public class AuditController {
     }
 
     // 3. Ajouter une action corrective à une NC
+
     @PostMapping("/action/save")
+    public String saveAction(@RequestParam UUID ncId, @ModelAttribute ActionCorrective action) {
+        // 1. Enregistrement dans le module Audit
+        NonConformite nc = ncRepo.findById(ncId).orElseThrow();
+        action.setNonConformite(nc);
+        action.setStatut("A_FAIRE");
+        ActionCorrective savedAction = actionRepo.save(action);
+
+        // 2. TRANSFERT AUTOMATIQUE VERS LE JOURNAL D'AMÉLIORATION
+        improvementService.addActionFromAudit(savedAction);
+
+        return "redirect:/audit/actions-correctives?success=true";
+    }
+/*    @PostMapping("/action/save")
     public String saveAction(@RequestParam("ncId") UUID ncId, @ModelAttribute ActionCorrective action) {
         NonConformite nc = ncRepo.findById(ncId).orElseThrow();
         action.setNonConformite(nc);
@@ -441,7 +458,7 @@ public class AuditController {
         actionRepo.save(action);
 
         return "redirect:/audit/actions-correctives";
-    }
+    }*/
 
 
     @GetMapping("/resultat/{id}")

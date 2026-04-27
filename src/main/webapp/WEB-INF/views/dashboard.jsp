@@ -940,6 +940,7 @@
                     <h5>Management & Services</h5>
                     <div class="mt-2">
                         <a href="/audit/missions" class="btn-link-iso">Missions d'Audit</a>
+                        <a href="/compliance/improvement" class="btn-link-iso">Journal d'Amélioration</a>
                         <a href="/audit/actions-correctives" class="btn-link-iso">Actions Correctives</a>
                     </div>
                 </div>

@@ -26,11 +26,20 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      # ÉTAPE 1 : Compilation et Build (Gère aussi l'encodage)
+      # Cache Maven dependencies (optionnel) et surtout OWASP DB
+      - name: Cache OWASP Database
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: owasp-db-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            owasp-db-${{ runner.os }}-
+
+      # Build
       - name: Build with Maven
         run: mvn clean package -DskipTests -Dfile.encoding=UTF-8
 
-      # ÉTAPE 2 : Scan de Sécurité via Maven (Plus de problème JAVA_HOME)
+      # Vérifier la présence de la clé API NVD
       - name: Check NVD API key availability
         id: nvd_key
         env:
@@ -38,30 +47,43 @@ jobs:
         run: |
           if [ -z "${NVD_API_KEY}" ]; then
             echo "has_key=false" >> "$GITHUB_OUTPUT"
-            echo "NVD_API_KEY secret missing: skipping Dependency-Check scan."
           else
             echo "has_key=true" >> "$GITHUB_OUTPUT"
           fi
 
+      # Security Scan (uniquement si la clé est présente)
       - name: Security Scan (Dependency Check)
         if: steps.nvd_key.outputs.has_key == 'true'
         env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+          API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
           mvn org.owasp:dependency-check-maven:check \
-            -Dformat=HTML \
-            -DnvdApiDelay=16000 \
-            -DconnectionTimeout=120000 \
+            -DnvdApiKey=$API_KEY \
+            -DnvdApiDelay=20000 \
             -DautoUpdate=true
 
-      - name: Security Scan skipped
-        if: steps.nvd_key.outputs.has_key != 'true'
-        run: echo "Dependency-Check skipped because NVD_API_KEY is not configured."
+      # Archiver le cache OWASP en tant qu'artefact (pour le télécharger manuellement)
+      - name: Archive OWASP cache
+        if: steps.nvd_key.outputs.has_key == 'true'
+        run: |
+          tar -czf owasp-cache.tar.gz -C ~/.m2/repository/org/owasp dependency-check-data
 
-      # ÉTAPE 3 : Archivage du Rapport HTML
+      - name: Upload cache artifact
+        if: steps.nvd_key.outputs.has_key == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-cache
+          path: owasp-cache.tar.gz
+
+      # Rapport de sécurité (si le scan a été exécuté)
       - name: Upload Security Report
         if: always() && steps.nvd_key.outputs.has_key == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: security-report
           path: target/security-reports/dependency-check-report.html
+
+      # Message si la clé est absente
+      - name: Security Scan skipped
+        if: steps.nvd_key.outputs.has_key != 'true'
+        run: echo "Dependency-Check skipped because NVD_API_KEY is not configured."

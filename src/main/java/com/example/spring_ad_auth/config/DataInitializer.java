@@ -2,10 +2,8 @@ package com.example.spring_ad_auth.config;
 
 import com.example.spring_ad_auth.model.ClauseISO;
 import com.example.spring_ad_auth.model.Perimetre;
-import com.example.spring_ad_auth.repository.ClauseISORepository;
-import com.example.spring_ad_auth.repository.ControleRepository;
-import com.example.spring_ad_auth.repository.PerimetreRepository;
-import com.example.spring_ad_auth.repository.RisqueRepository;
+import com.example.spring_ad_auth.repository.*;
+import com.example.spring_ad_auth.service.ImprovementService;
 import com.example.spring_ad_auth.service.RiskTableService;
 import com.example.spring_ad_auth.service.SoAIntegrationService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +19,8 @@ public class DataInitializer implements CommandLineRunner {
     @Autowired private ControleRepository controleRepo;
     @Autowired private RisqueRepository risqueRepo;
     @Autowired private RiskTableService riskTableService;
+    @Autowired private ImprovementRepository improvementRepo;
+    @Autowired private ImprovementService improvementService; // Injecter le service
 
     @Override
     public void run(String... args) throws Exception {
@@ -31,6 +31,15 @@ public class DataInitializer implements CommandLineRunner {
 /*        if (syncService.isReferentielEmpty()) {
             syncService.importReferentielFromExcel();
         }*/
+
+        if (improvementRepo.count() == 0) {
+            try {
+                improvementService.initJournalFromExcel();
+            } catch (Exception e) {
+                System.err.println("❌ Erreur init Journal d'amélioration : " + e.getMessage());
+            }
+        }
+
     }
 
 }
