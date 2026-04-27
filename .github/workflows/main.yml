@@ -5,6 +5,7 @@ on:
     branches: [ "main", "master" ]
   pull_request:
     branches: [ "main", "master" ]
+  workflow_dispatch:          # Permet un déclenchement manuel depuis l'interface GitHub
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -26,7 +27,7 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      # Cache Maven dependencies (optionnel) et surtout OWASP DB
+      # Cache de la base de données OWASP (pour les runs suivants)
       - name: Cache OWASP Database
         uses: actions/cache@v4
         with:
@@ -35,23 +36,31 @@ jobs:
           restore-keys: |
             owasp-db-${{ runner.os }}-
 
-      # Build
+      # Build du projet
       - name: Build with Maven
         run: mvn clean package -DskipTests -Dfile.encoding=UTF-8
 
       # Vérifier la présence de la clé API NVD
-      - name: Check NVD API key availability
+      - name: Check NVD API key
         id: nvd_key
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
           if [ -z "${NVD_API_KEY}" ]; then
             echo "has_key=false" >> "$GITHUB_OUTPUT"
+            echo "⚠️ NVD_API_KEY secret missing. Scan will be skipped."
           else
             echo "has_key=true" >> "$GITHUB_OUTPUT"
           fi
 
-      # Security Scan (uniquement si la clé est présente)
+      # Supprimer les éventuels fichiers .lock qui bloqueraient la mise à jour
+      - name: Clean OWASP lock files
+        if: steps.nvd_key.outputs.has_key == 'true'
+        run: |
+          find ~/.m2/repository/org/owasp/dependency-check-data -name "*.lock" -delete
+          echo "Lock files removed."
+
+      # Scan de sécurité (utilisation de la clé API)
       - name: Security Scan (Dependency Check)
         if: steps.nvd_key.outputs.has_key == 'true'
         env:
@@ -62,11 +71,12 @@ jobs:
             -DnvdApiDelay=20000 \
             -DautoUpdate=true
 
-      # Archiver le cache OWASP en tant qu'artefact (pour le télécharger manuellement)
+      # Archiver la base OWASP (même si le scan échoue, on garde le cache)
       - name: Archive OWASP cache
         if: steps.nvd_key.outputs.has_key == 'true'
         run: |
-          tar -czf owasp-cache.tar.gz -C ~/.m2/repository/org/owasp dependency-check-data
+          cd ~/.m2/repository/org/owasp
+          tar -czf $GITHUB_WORKSPACE/owasp-cache.tar.gz dependency-check-data
 
       - name: Upload cache artifact
         if: steps.nvd_key.outputs.has_key == 'true'
@@ -74,27 +84,18 @@ jobs:
         with:
           name: owasp-cache
           path: owasp-cache.tar.gz
+          retention-days: 7
 
-      # Rapport de sécurité (si le scan a été exécuté)
+      # Upload du rapport de sécurité (si disponible)
       - name: Upload Security Report
         if: always() && steps.nvd_key.outputs.has_key == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: security-report
           path: target/security-reports/dependency-check-report.html
+          retention-days: 7
 
       # Message si la clé est absente
       - name: Security Scan skipped
         if: steps.nvd_key.outputs.has_key != 'true'
         run: echo "Dependency-Check skipped because NVD_API_KEY is not configured."
-
-      - name: Check NVD API key availability
-        id: nvd_key
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-        run: |
-          if [ -z "${NVD_API_KEY}" ]; then
-            echo "has_key=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_key=true" >> "$GITHUB_OUTPUT"
-          fi
