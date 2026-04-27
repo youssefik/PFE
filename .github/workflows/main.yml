@@ -87,3 +87,14 @@ jobs:
       - name: Security Scan skipped
         if: steps.nvd_key.outputs.has_key != 'true'
         run: echo "Dependency-Check skipped because NVD_API_KEY is not configured."
+
+      - name: Check NVD API key availability
+        id: nvd_key
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          if [ -z "${NVD_API_KEY}" ]; then
+            echo "has_key=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_key=true" >> "$GITHUB_OUTPUT"
+          fi
