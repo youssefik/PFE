@@ -4,10 +4,11 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <!-- Spring Boot 3.4.12 : la plus récente version de la branche 3.4.x (2026) -->
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.3.10</version>
+        <version>3.4.12</version>
         <relativePath/>
     </parent>
 
@@ -21,11 +22,18 @@
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <!-- Version explicite pour POI (non géré par Spring Boot) -->
-        <poi.version>5.5.1</poi.version>
+
+        <!-- Override des versions pour les dépendances non gérées ou mal mises à jour -->
+        <tomcat.version>10.1.58</tomcat.version>              <!-- CVE-2026-29145, CVE-2025-48988,... corrigées -->
+        <spring-security.version>6.5.12</spring-security.version> <!-- CVE-2026-22732, CVE-2025-22234 corrigées -->
+        <spring-framework.version>6.2.20</spring-framework.version> <!-- CVE-2025-41249, CVE-2025-41234, CVE-2026-22737 corrigées -->
+        <logback.version>1.5.25</logback.version>            <!-- CVE-2025-11226, CVE-2026-1225 corrigées -->
+        <jackson.version>2.18.6</jackson.version>            <!-- GHSA-72hv-8253-57qq corrigée -->
+        <commons-lang3.version>3.18.0</commons-lang3.version> <!-- CVE-2025-48924 corrigée -->
+        <poi.version>5.5.1</poi.version>                     <!-- CVE-2025-31672 corrigée -->
     </properties>
 
-    <!-- Repository nécessaire pour Spring AI (Milestone) -->
+    <!-- Dépôt nécessaire pour Spring AI (milestones) -->
     <repositories>
         <repository>
             <id>spring-milestones</id>
@@ -36,11 +44,11 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- BOM Spring AI pour gérer ses versions -->
+            <!-- BOM Spring AI (version compatible avec Spring Boot 3.4.x) -->
             <dependency>
                 <groupId>org.springframework.ai</groupId>
                 <artifactId>spring-ai-bom</artifactId>
-                <version>1.0.0-M3</version>
+                <version>1.0.0-M5</version>  <!-- Dernière milestone compatible -->
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -87,7 +95,7 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- JSP Support -->
+        <!-- Support JSP -->
         <dependency>
             <groupId>org.apache.tomcat.embed</groupId>
             <artifactId>tomcat-embed-jasper</artifactId>
@@ -115,7 +123,7 @@
             <version>${poi.version}</version>
         </dependency>
 
-        <!-- Spring AI Ollama -->
+        <!-- Spring AI Ollama (compatible) -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-ollama-spring-boot-starter</artifactId>
