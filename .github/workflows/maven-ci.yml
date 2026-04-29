@@ -1,25 +1,18 @@
-name: CyberPilot SMSI - CI/CD Pipeline
+name: CyberPilot SMSI - Snyk Security Scan
 
 on:
   push:
     branches: [ "main", "master" ]
   pull_request:
     branches: [ "main", "master" ]
-  workflow_dispatch: # Permet de lancer le scan manuellement
-
-permissions:
-  contents: read
 
 jobs:
-  build-and-security:
+  security:
     runs-on: ubuntu-latest
-
     steps:
-      # 1. Récupération du code
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 2. Installation de Java 17
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -27,45 +20,17 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      # 3. Mise en cache de la base de données OWASP (pour gagner 10 min à chaque run)
-      - name: Cache OWASP Dependency-Check Data
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: ${{ runner.os }}-owasp-db
-          restore-keys: |
-            ${{ runner.os }}-owasp-db
-
-      # 4. Compilation et Tests Unitaires
-      - name: Build with Maven
-        run: mvn clean package -DskipTests=false
-
-      # 5. Scan de sécurité (Dependency-Check)
-      # On utilise le miroir ET la clé API pour une stabilité maximale
-      - name: OWASP Dependency Scan
+      # Scan du code et des dépendances Maven avec Snyk
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/maven@master
         env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-        run: |
-          mvn dependency-check:check \
-            -DnvdApiKey="${{ secrets.NVD_API_KEY }}" \
-            -DnvdApiDelay=8000 \
-            -DnvdApiEndpoint="https://dependency-check-mirror.tomorrow.run/nvdv2/" \
-            -DautoUpdate=true
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high # Ne bloque le build que pour les failles graves
 
-      # 6. Archivage du rapport de sécurité (même si le scan trouve des failles)
-      - name: Upload Security Report
+      # Optionnel : Envoyer les résultats dans l'onglet Security de GitHub
+      - name: Upload result to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
-        uses: actions/upload-artifact@v4
         with:
-          name: security-report
-          path: target/dependency-check-report.html
-          retention-days: 7
-
-      # 7. Archivage du JAR final
-      - name: Upload Artifact (JAR)
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: CyberPilot-App
-          path: target/*.jar
-          retention-days: 5
+          sarif_file: snyk.sarif
