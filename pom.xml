@@ -4,7 +4,6 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- Spring Boot 3.4.10 : dernière version stable de la branche 3.4.x (avril 2026) -->
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
@@ -23,17 +22,21 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <!-- Override des versions pour corriger les CVEs -->
-        <spring-framework.version>6.2.17</spring-framework.version>      <!-- CVE-2025-41249, CVE-2025-41234, CVE-2025-41242, CVE-2026-22737 -->
-        <spring-security.version>6.5.9</spring-security.version>         <!-- CVE-2025-41232, CVE-2025-41248, CVE-2026-22732 -->
-        <jackson.version>2.18.6</jackson.version>                        <!-- GHSA-72hv-8253-57qq -->
-        <logback.version>1.5.25</logback.version>                        <!-- CVE-2025-11226, CVE-2026-1225 -->
-        <commons-lang3.version>3.18.0</commons-lang3.version>            <!-- CVE-2025-48924 -->
-        <commons-compress.version>1.27.1</commons-compress.version>      <!-- Améliore la sécurité -->
-        <poi.version>5.5.1</poi.version>                                 <!-- CVE-2025-31672 -->
+        <!-- Correction CVE-2026-29145, CVE-2026-34483, CVE-2026-34487 (Versions >= 10.1.54) -->
+        <tomcat.version>10.1.54</tomcat.version>
+
+        <!-- Correction GHSA-72hv-8253-57qq (Jackson Async DoS) -->
+        <jackson-bom.version>2.18.6</jackson-bom.version>
+
+        <!-- Vos autres overrides de sécurité -->
+        <spring-framework.version>6.2.17</spring-framework.version>
+        <spring-security.version>6.5.9</spring-security.version>
+        <logback.version>1.5.25</logback.version>
+        <commons-lang3.version>3.18.0</commons-lang3.version>
+        <commons-compress.version>1.27.1</commons-compress.version>
+        <poi.version>5.5.1</poi.version>
     </properties>
 
-    <!-- Dépôt nécessaire pour Spring AI (milestones) -->
     <repositories>
         <repository>
             <id>spring-milestones</id>
@@ -43,7 +46,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- BOM Spring AI (compatible Spring Boot 3.4.x) -->
             <dependency>
                 <groupId>org.springframework.ai</groupId>
                 <artifactId>spring-ai-bom</artifactId>
@@ -81,20 +83,18 @@
             <artifactId>spring-boot-starter-data-ldap</artifactId>
         </dependency>
 
-        <!-- LDAP Spring Security (version gérée via spring-security.version) -->
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-ldap</artifactId>
         </dependency>
 
-        <!-- H2 Database -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Support JSP -->
+        <!-- Serveur d'application et JSP -->
         <dependency>
             <groupId>org.apache.tomcat.embed</groupId>
             <artifactId>tomcat-embed-jasper</artifactId>
@@ -110,7 +110,7 @@
             <version>3.0.1</version>
         </dependency>
 
-        <!-- Apache POI (Excel) -->
+        <!-- Apache POI -->
         <dependency>
             <groupId>org.apache.poi</groupId>
             <artifactId>poi</artifactId>
@@ -122,13 +122,12 @@
             <version>${poi.version}</version>
         </dependency>
 
-        <!-- Spring AI Ollama -->
+        <!-- Spring AI -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-ollama-spring-boot-starter</artifactId>
         </dependency>
 
-        <!-- Tests -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -137,12 +136,6 @@
     </dependencies>
 
     <build>
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-                <filtering>false</filtering>
-            </resource>
-        </resources>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
