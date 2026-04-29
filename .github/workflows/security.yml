@@ -7,7 +7,7 @@ on:
     branches: [ "main", "master" ]
 
 permissions:
-  contents: read
+  contents: write       # nécessaire pour uploader l'artifact (rapport)
   security-events: write
   actions: read
 
@@ -16,11 +16,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 2. Java setup
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -28,11 +26,9 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      # 3. Build projet
       - name: Build Project
         run: mvn install -DskipTests
 
-      # 4. Scan sécurité Trivy
       - name: Run Trivy Scan
         uses: aquasecurity/trivy-action@v0.20.0
         with:
@@ -42,8 +38,15 @@ jobs:
           output: trivy-results.sarif
           severity: CRITICAL,HIGH
 
-      # 5. Upload vers GitHub Security
-      - name: Upload Trivy Scan Results
+      # NOUVEAU : Télécharger le fichier SARIF comme artifact du workflow
+      - name: Upload SARIF report as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-scan-report
+          path: trivy-results.sarif
+          retention-days: 30   # optionnel : conserve l'artifact 30 jours
+
+      - name: Upload Trivy Scan Results to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
         if: >
           github.event_name != 'pull_request' ||
