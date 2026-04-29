@@ -160,17 +160,6 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
 
-            <!-- AJOUT DU PLUGIN DE SÉCURITÉ : Plus stable que l'Action GitHub directe -->
-            <plugin>
-                <groupId>org.owasp</groupId>
-                <artifactId>dependency-check-maven</artifactId>
-                <version>9.0.9</version>
-                <configuration>
-                    <autoUpdate>true</autoUpdate>
-                    <failOnError>false</failOnError> <!-- INDISPENSABLE pour que GitHub reste Vert -->
-                </configuration>
-            </plugin>
-
 
         </plugins>
     </build>
