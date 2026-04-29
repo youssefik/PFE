@@ -115,7 +115,7 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label fw-bold small text-danger">Source de Menace</label>
+                    <label class="form-label fw-bold small text-danger">Source de Menace (EBIOS)</label>
                     <select name="origineMenace" class="form-select">
                         <option value="Cybercriminel">Cybercriminel (Externe)</option>
                         <option value="Employé malveillant">Employé malveillant (Interne)</option>
