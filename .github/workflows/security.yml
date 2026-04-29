@@ -8,15 +8,19 @@ on:
 
 permissions:
   contents: read
-  security-events: write  # Obligatoire pour afficher les alertes dans l'onglet Security
+  security-events: write   # Pour afficher les vulnérabilités
+  actions: read            # Fix erreur "Resource not accessible"
 
 jobs:
   trivy-scan:
     runs-on: ubuntu-latest
+
     steps:
+      # 1. Récupération du code
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # 2. Setup Java (pour projet Spring / Maven)
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -24,23 +28,25 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      # On compile pour s'assurer que toutes les dépendances sont là
+      # 3. Build du projet
       - name: Build Project
         run: mvn install -DskipTests
 
-      # Scan de sécurité avec Trivy (Remplace OWASP et Snyk)
+      # 4. Scan sécurité avec Trivy
       - name: Run Trivy Scan
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.24.0
         with:
-          scan-type: 'fs'           # Scan le système de fichiers
-          scan-ref: '.'             # Scan tout le projet
-          format: 'sarif'           # Format pour GitHub Security
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
           output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH' # On se concentre sur le plus grave
+          severity: 'CRITICAL,HIGH'
 
-      # Upload des résultats pour voir les failles dans l'interface GitHub
+      # 5. Upload des résultats dans GitHub Security
       - name: Upload Trivy Scan Results
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        if: >
+          github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.full_name == github.repository
         with:
           sarif_file: 'trivy-results.sarif'
