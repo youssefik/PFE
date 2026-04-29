@@ -21,9 +21,31 @@
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <!-- Version d'Apache POI (non gérée par Spring Boot) -->
+        <!-- Version explicite pour POI (non géré par Spring Boot) -->
         <poi.version>5.5.1</poi.version>
     </properties>
+
+    <!-- Repository nécessaire pour Spring AI (Milestone) -->
+    <repositories>
+        <repository>
+            <id>spring-milestones</id>
+            <name>Spring Milestones</name>
+            <url>https://repo.spring.io/milestone</url>
+        </repository>
+    </repositories>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- BOM Spring AI pour gérer ses versions -->
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>1.0.0-M3</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <!-- Spring Boot starters -->
@@ -58,14 +80,14 @@
             <artifactId>spring-security-ldap</artifactId>
         </dependency>
 
-        <!-- Base de données H2 -->
+        <!-- H2 Database -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Support JSP -->
+        <!-- JSP Support -->
         <dependency>
             <groupId>org.apache.tomcat.embed</groupId>
             <artifactId>tomcat-embed-jasper</artifactId>
@@ -81,7 +103,7 @@
             <version>3.0.1</version>
         </dependency>
 
-        <!-- Apache POI (Excel) – versions explicites, corrigent les CVE -->
+        <!-- Apache POI (Excel) -->
         <dependency>
             <groupId>org.apache.poi</groupId>
             <artifactId>poi</artifactId>
@@ -93,13 +115,11 @@
             <version>${poi.version}</version>
         </dependency>
 
-        <!-- Spring AI Ollama – temporairement commenté (nécessite spring-milestones) -->
-        <!--
+        <!-- Spring AI Ollama -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-ollama-spring-boot-starter</artifactId>
         </dependency>
-        -->
 
         <!-- Tests -->
         <dependency>
