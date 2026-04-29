@@ -1,0 +1,43 @@
+name: CyberPilot SMSI - Snyk Security Scan
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      # Installation du CLI Snyk sur la machine (plus fiable que Docker)
+      - name: Install Snyk CLI
+        uses: snyk/actions/setup@master
+
+      # On compile le projet pour que Snyk puisse analyser les dépendances correctement
+      - name: Install Dependencies
+        run: mvn install -DskipTests
+
+      # Exécution du scan Snyk
+      # --sarif-file-output génère le fichier nécessaire pour l'étape suivante
+      - name: Snyk Test
+        run: snyk test --severity-threshold=high --sarif-file-output=snyk.sarif
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      # Upload des résultats dans l'onglet Security de GitHub
+      - name: Upload result to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() # On envoie le rapport même si des failles sont trouvées
+        with:
+          sarif_file: snyk.sarif
