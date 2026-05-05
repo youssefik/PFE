@@ -1,5 +1,187 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
+<%@ taglib uri="jakarta.tags.fmt" prefix="fmt" %>
+<%@ taglib prefix="t" tagdir="/WEB-INF/tags" %>
+
+<t:layout pageTitle="Pilotage Stratégique SMSI">
+
+    <style>
+        /* HEATMAP STYLING PRO */
+        .heatmap-table { table-layout: fixed; width: 100%; border-spacing: 4px; border-collapse: separate; }
+        .heatmap-table td {
+            height: 60px;
+            text-align: center;
+            vertical-align: middle;
+            border-radius: 4px;
+            font-weight: 900;
+            font-size: 1.2rem;
+            transition: 0.3s;
+            position: relative;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        .heatmap-table td:hover { transform: scale(1.05); filter: brightness(1.1); cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.15); z-index: 10; }
+
+        /* Couleurs de Sévérité ISO 27005 */
+        .lvl-low      { background-color: #C6EFCE !important; color: #006100 !important; }
+        .lvl-medium   { background-color: #FFF3CD !important; color: #856404 !important; }
+        .lvl-high     { background-color: #ffcc80 !important; color: #e65100 !important; }
+        .lvl-critical { background-color: #f8d7da !important; color: #721c24 !important; }
+
+        .axis-label { font-size: 0.7rem; font-weight: bold; color: #6c757d; text-transform: uppercase; }
+        .empty-cell { opacity: 0.2; font-weight: 400 !important; font-size: 0.8rem !important; }
+
+        @media print {
+            .no-print { display: none !important; }
+            .main-sidebar, .main-header { display: none !important; }
+            .content-wrapper { margin-left: 0 !important; }
+        }
+    </style>
+
+    <!-- SECTION DES INDICATEURS CLÉS (KPI Boxes) -->
+    <div class="row">
+        <!-- Conformité -->
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-info elevation-2">
+                <div class="inner">
+                    <h3>${stats.complianceRate}<sup style="font-size: 20px">%</sup></h3>
+                    <p>Conformité Globale</p>
+                </div>
+                <div class="icon"><i class="fas fa-check-double"></i></div>
+                <a href="/compliance/soa" class="small-box-footer">Détails SoA <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+        </div>
+        <!-- Risques Critiques -->
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-danger elevation-2">
+                <div class="inner">
+                    <h3>${stats.highRisksCount}</h3>
+                    <p>Risques Critiques</p>
+                </div>
+                <div class="icon"><i class="fas fa-exclamation-triangle"></i></div>
+                <a href="/rssi/risques" class="small-box-footer">Voir les alertes <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+        </div>
+        <!-- Actifs -->
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-success elevation-2">
+                <div class="inner">
+                    <h3>${stats.totalAssets}</h3>
+                    <p>Actifs Inventoriés</p>
+                </div>
+                <div class="icon"><i class="fas fa-boxes"></i></div>
+                <a href="/rssi/actifs" class="small-box-footer">Inventaire complet <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+        </div>
+        <!-- Actions Clôturées -->
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-warning elevation-2">
+                <div class="inner">
+                    <h3>${stats.closedActions}<sup style="font-size: 15px">/${stats.totalActions}</sup></h3>
+                    <p>Actions de Remédiation</p>
+                </div>
+                <div class="icon text-white"><i class="fas fa-tasks"></i></div>
+                <a href="/audit/actions-correctives" class="small-box-footer text-white">Plan d'action <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- CARTOGRAPHIE DES RISQUES (Matrice 5x5) -->
+        <div class="col-lg-8">
+            <div class="card card-outline card-dark shadow-sm">
+                <div class="card-header border-0">
+                    <h3 class="card-title font-weight-bold">
+                        <i class="fas fa-th mr-2"></i> Cartographie Inhérente (Impact vs Probabilité)
+                    </h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-tool" onclick="window.print()"><i class="fas fa-print"></i></button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="heatmap-table">
+                        <c:forEach var="impactVal" begin="0" end="4">
+                            <c:set var="i" value="${5 - impactVal}" />
+                            <tr>
+                                <td class="axis-label pr-3 text-right">Impact ${i}</td>
+                                <c:forEach var="p" begin="1" end="5">
+                                    <c:set var="val" value="${stats.riskDistribution[i][p]}" />
+                                    <c:set var="score" value="${i * p}" />
+
+                                    <%-- Couleur selon score ISO 27005 --%>
+                                    <c:choose>
+                                        <c:when test="${score >= 15}"><c:set var="colorClass" value="lvl-critical" /></c:when>
+                                        <c:when test="${score >= 8}"><c:set var="colorClass" value="lvl-high" /></c:when>
+                                        <c:when test="${score >= 4}"><c:set var="colorClass" value="lvl-medium" /></c:when>
+                                        <c:otherwise><c:set var="colorClass" value="lvl-low" /></c:otherwise>
+                                    </c:choose>
+
+                                    <td class="${colorClass} ${val == 0 ? 'empty-cell' : ''}"
+                                        onclick="if(${val > 0}) window.location.href='/rssi/risques?impact=${i}&proba=${p}'">
+                                        <c:if test="${val > 0}">${val}</c:if>
+                                        <c:if test="${val == 0}">.</c:if>
+                                    </td>
+                                </c:forEach>
+                            </tr>
+                        </c:forEach>
+                        <!-- Labels Probabilité -->
+                        <tr>
+                            <td></td>
+                            <c:forEach var="p" begin="1" end="5"><td class="axis-label pt-2 text-center">Prob ${p}</td></c:forEach>
+                        </tr>
+                    </table>
+
+                    <div class="mt-4 text-center">
+                        <span class="badge lvl-critical px-3 py-1 mr-2 border">CRITIQUE</span>
+                        <span class="badge lvl-high px-3 py-1 mr-2 border text-orange">SIGNIFICATIF</span>
+                        <span class="badge lvl-medium px-3 py-1 mr-2 border text-brown">MODÉRÉ</span>
+                        <span class="badge lvl-low px-3 py-1 border text-success">FAIBLE</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ASSISTANT DÉCISIONNEL IA -->
+        <div class="col-lg-4">
+            <div class="card bg-gradient-dark shadow-sm h-100">
+                <div class="card-header border-0">
+                    <h3 class="card-title font-weight-bold">
+                        <i class="fas fa-robot text-info mr-2"></i> CyberPilot AI Advisor
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="p-3 mb-4 rounded" style="background-color: rgba(255,255,255,0.1)">
+                        <p class="small mb-0">
+                            <strong>Note de synthèse :</strong><br>
+                            Le profil de risque est marqué par <strong>${stats.highRisksCount}</strong> vulnérabilités majeures sur les actifs sensibles.
+                        </p>
+                    </div>
+
+                    <h6 class="font-weight-bold small text-uppercase mb-3"><i class="fas fa-bullseye mr-1 text-danger"></i> Priorités Stratégiques :</h6>
+                    <ul class="fa-ul small ml-4">
+                        <c:if test="${stats.highRisksCount > 0}">
+                            <li class="mb-2"><span class="fa-li"><i class="fas fa-angle-double-right"></i></span>Traitement immédiat des scénarios critiques (Score > 15).</li>
+                        </c:if>
+                        <c:if test="${stats.complianceRate < 90}">
+                            <li class="mb-2"><span class="fa-li"><i class="fas fa-angle-double-right"></i></span>Accélération du déploiement de l'Annexe A.8 (Contrôles Technologiques).</li>
+                        </c:if>
+                        <li class="mb-2"><span class="fa-li"><i class="fas fa-angle-double-right"></i></span>Planification de la revue des accès suite aux ${stats.totalAssets} actifs identifiés.</li>
+                    </ul>
+
+                    <div class="mt-auto pt-4 border-top" style="border-top-color: rgba(255,255,255,0.1) !important;">
+                        <a href="/rssi/risk-editor" class="btn btn-info btn-block font-weight-bold shadow-sm">
+                            <i class="fas fa-edit mr-1"></i> OPTIMISER LE PLAN DE TRAITEMENT
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</t:layout>
+
+
+<%--<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib uri="jakarta.tags.core" prefix="c" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 <!DOCTYPE html>
 <html lang="fr">
@@ -94,7 +276,7 @@
                                 <c:set var="val" value="${stats.riskDistribution[i][p]}" />
                                 <c:set var="score" value="${i * p}" />
 
-                                <%-- Détermination de la classe de couleur --%>
+                                &lt;%&ndash; Détermination de la classe de couleur &ndash;%&gt;
                                 <c:choose>
                                     <c:when test="${score >= 15}"><c:set var="colorClass" value="lvl-critical" /></c:when>
                                     <c:when test="${score >= 8}"><c:set var="colorClass" value="lvl-high" /></c:when>
@@ -102,12 +284,12 @@
                                     <c:otherwise><c:set var="colorClass" value="lvl-low" /></c:otherwise>
                                 </c:choose>
 
-                                <%-- CORRECTION : On utilise ${colorClass} ici --%>
+                                &lt;%&ndash; CORRECTION : On utilise ${colorClass} ici &ndash;%&gt;
                                 <td class="${colorClass} ${val == 0 ? 'empty-cell' : ''}"
                                     onclick="if(${val > 0}) window.location.href='/rssi/risques?impact=${i}&proba=${p}'"
                                     style="cursor: ${val > 0 ? 'pointer' : 'default'};">
 
-                                        <%-- On affiche le chiffre seulement s'il est supérieur à 0 --%>
+                                        &lt;%&ndash; On affiche le chiffre seulement s'il est supérieur à 0 &ndash;%&gt;
                                     <c:if test="${val > 0}">
                                         ${val}
                                     </c:if>
@@ -172,7 +354,9 @@
     </div>
 </div>
 </body>
-</html>
+</html>--%>
+
+
 <%--
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>

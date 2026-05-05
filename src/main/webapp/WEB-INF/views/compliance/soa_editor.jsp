@@ -1,5 +1,223 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
+<%@ taglib prefix="t" tagdir="/WEB-INF/tags" %>
+
+<t:layout pageTitle="Éditeur Professionnel SoA">
+
+    <%-- Imports spécifiques à Handsontable --%>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@14.0.0/dist/handsontable.full.min.css">
+
+    <style>
+        /* Conteneur pour maximiser la visibilité de l'éditeur */
+        .editor-wrapper {
+            height: calc(100vh - 210px); /* Hauteur dynamique */
+            min-height: 550px;
+            background: white;
+            position: relative;
+        }
+
+        #hot-container { width: 100%; height: 100%; }
+
+        /* STYLE DES ENTÊTES GRISE (Excel Style) */
+        .handsontable th {
+            background-color: #e9ecef !important;
+            color: #495057 !important;
+            font-weight: bold !important;
+            border: 1px solid #dee2e6 !important;
+            vertical-align: middle !important;
+        }
+
+        /* LIGNES ROUGES ISO (Titres de sections) */
+        .handsontable td.iso-chapter-row {
+            background-color: #D2010D !important;
+            color: white !important;
+            font-weight: bold !important;
+            text-transform: uppercase !important;
+            border-bottom: 1px solid #000 !important;
+        }
+
+        /* CELLULES DE STATUT */
+        .handsontable td.status-green {
+            background-color: #C6EFCE !important;
+            color: #006100 !important;
+            font-weight: bold !important;
+            text-align: center !important;
+        }
+
+        .handsontable td.status-red {
+            background-color: #f8d7da !important;
+            color: #721c24 !important;
+            font-weight: bold !important;
+            text-align: center !important;
+        }
+
+        .handsontable td { vertical-align: middle !important; border: 1px solid #dee2e6 !important; font-size: 12px; }
+        .hiddenCol { display: none; }
+
+        .htMiddle { vertical-align: middle !important; }
+    </style>
+
+    <div class="card card-outline card-danger shadow-sm">
+        <div class="card-header border-bottom">
+            <h3 class="card-title mt-1">
+                <i class="fas fa-table mr-2 text-danger"></i>
+                <strong>Registre de Conformité SoA</strong>
+                <small class="ml-2 text-muted d-none d-sm-inline">| Edition directe (Excel Sync)</small>
+            </h3>
+
+            <div class="card-tools d-flex">
+                <button onclick="saveData()" class="btn btn-success font-weight-bold mr-2 shadow-sm">
+                    <i class="fas fa-save mr-1"></i> ENREGISTRER & SYNC
+                </button>
+                <div class="dropdown mr-2">
+                    <button class="btn btn-outline-dark dropdown-toggle" type="button" data-toggle="dropdown">
+                        <i class="fas fa-exchange-alt mr-1"></i> Synchronisation
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <a class="dropdown-item" href="javascript:syncAction('/compliance/sync/import')">
+                            <i class="fas fa-download mr-2 text-primary"></i> Importer d'Excel (DDA.xlsx)
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="/compliance/soa">
+                            <i class="fas fa-eye mr-2"></i> Mode Lecture / Preuves
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-body p-0">
+            <div id="hot-container-wrapper" class="editor-wrapper">
+                <div id="hot-container"></div>
+            </div>
+        </div>
+
+        <div class="card-footer bg-light py-2">
+            <div class="row text-muted small">
+                <div class="col-md-6 italic">
+                    <i class="fas fa-info-circle mr-1 text-danger"></i> Utilisez le clic-droit pour ajouter/supprimer des lignes.
+                </div>
+                <div class="col-md-6 text-right font-weight-bold">
+                    Standard : ISO/IEC 27001:2022
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts Handsontable -->
+    <script src="https://cdn.jsdelivr.net/npm/handsontable@14.0.0/dist/handsontable.full.min.js"></script>
+
+    <script>
+        let hot;
+        const colHeaders = ['Thème', 'Mesure de sécurité', 'Applicabilité', 'Justification', 'Preuve', 'Mise en place?', 'Responsable', 'StyleData'];
+
+        function soaRenderer(instance, td, row, col, prop, value, cellProperties) {
+            Handsontable.renderers.TextRenderer.apply(this, arguments);
+            const dataRow = instance.getDataAtRow(row);
+            const code = dataRow[0] ? dataRow[0].toString().trim() : "";
+            const styleBD = dataRow[7] ? dataRow[7].toString() : "";
+
+            td.className = 'htMiddle';
+            td.style.backgroundColor = '';
+            td.style.color = '';
+
+            // 1. Titres de sections (Chapitres ISO)
+            if (code && (code.includes(",") || !code.includes("."))) {
+                td.classList.add('iso-chapter-row');
+            }
+            // 2. OUI/NON/EN COURS
+            else if ((col === 2 || col === 5)) {
+                if (value === "OUI" || value === "Oui") td.classList.add('status-green');
+                else if (value === "NON" || value === "Non") td.classList.add('status-red');
+                else if (value === "EN COURS") {
+                    td.style.backgroundColor = '#FFF3CD';
+                    td.style.color = '#856404';
+                    td.style.fontWeight = 'bold';
+                    td.style.textAlign = 'center';
+                }
+            }
+
+            // Wrapping
+            if (col === 1 || col === 3 || col === 4) td.style.whiteSpace = 'normal';
+        }
+
+        // Chargement dynamique
+        fetch('/compliance/editor/data')
+            .then(res => res.json())
+            .then(data => {
+                if (data.length > 0 && (data[0][0] === "Thème")) data.shift();
+
+                const container = document.getElementById('hot-container');
+                hot = new Handsontable(container, {
+                    data: data,
+                    colHeaders: colHeaders,
+                    rowHeaders: true,
+                    stretchH: 'all',
+                    height: '100%',
+                    manualColumnResize: true,
+                    contextMenu: true,
+                    mergeCells: true,
+                    licenseKey: 'non-commercial-and-evaluation',
+                    columns: [
+                        { width: 70 }, // Thème
+                        { width: 280 }, // Mesure
+                        { type: 'dropdown', source: ['OUI', 'NON'], width: 100 },
+                        { width: 300 }, // Justification
+                        { width: 250 }, // Preuve
+                        { type: 'dropdown', source: ['OUI', 'NON', 'EN COURS'], width: 100 },
+                        { width: 120 }, // Responsable
+                        { width: 0.1, className: 'hiddenCol' }
+                    ],
+                    cells: function() { return { renderer: soaRenderer }; },
+                    afterInit: function() { applyDynamicMerges(this); }
+                });
+            });
+
+        function applyDynamicMerges(instance) {
+            const d = instance.getData();
+            let merges = [];
+            for(let i=0; i<d.length; i++) {
+                let code = d[i][0] ? d[i][0].toString() : "";
+                if (code && (code.includes(",") || !code.includes("."))) {
+                    merges.push({ row: i, col: 0, rowspan: 1, colspan: 7 });
+                }
+            }
+            instance.updateSettings({ mergeCells: merges });
+        }
+
+        function saveData() {
+            const btn = event.target;
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Sync...';
+            btn.disabled = true;
+
+            const payload = [colHeaders, ...hot.getData()];
+
+            fetch('/compliance/editor/save', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            }).then(res => {
+                alert("✅ Registre SoA sauvegardé et synchronisé !");
+                location.reload();
+            }).catch(err => {
+                alert("Erreur réseau");
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            });
+        }
+
+        function syncAction(url) {
+            if(confirm("Lancer l'importation ? Cela mettra à jour la BD à partir du fichier Excel.")) {
+                fetch(url).then(res => res.text()).then(msg => { alert(msg); location.reload(); });
+            }
+        }
+    </script>
+</t:layout>
+
+<%--
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib uri="jakarta.tags.core" prefix="c" %>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -70,13 +288,13 @@
                     <i class="bi bi-upload"></i> IMPORTER DEPUIS EXCEL
                 </button>
 
-<%--                <div class="dropdown">
+&lt;%&ndash;                <div class="dropdown">
                 <button class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown">Synchronisation</button>
                 <ul class="dropdown-menu shadow">
                     <li><a class="dropdown-item" href="javascript:syncAction('/compliance/sync/export')">Sync vers Excel</a></li>
                     <li><a class="dropdown-item" href="javascript:syncAction('/compliance/sync/import')">Import depuis Excel</a></li>
                 </ul>
-            </div>--%>
+            </div>&ndash;%&gt;
             <a href="/compliance/soa" class="btn btn-secondary px-3">Retour</a>
         </div>
     </div>
@@ -262,6 +480,7 @@
 </script>
 </body>
 </html>
+--%>
 
 <%--
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>

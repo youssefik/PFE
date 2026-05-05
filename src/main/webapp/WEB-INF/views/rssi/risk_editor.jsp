@@ -1,854 +1,348 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>ISO 27005 - Registre des Risques</title>
+<%@ taglib uri="jakarta.tags.core" prefix="c" %>
+<%@ taglib uri="jakarta.tags.fmt" prefix="fmt" %>
+<%@ taglib prefix="t" tagdir="/WEB-INF/tags" %>
+
+<t:layout pageTitle="Registre des Risques ISO 27005">
+
+    <%-- Dépendance spécifique Handsontable --%>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@14.0.0/dist/handsontable.full.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
     <style>
-        /* --- Styles inchangés --- */
-        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: #f8f9fa; }
-        .main-container { height: 100vh; display: flex; flex-direction: column; }
-        .header-bar { height: 50px; background: #fff; padding: 0 20px; border-bottom: 2px solid #dc3545; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
-        .filter-bar { height: 60px; background: #fff; padding: 0 20px; border-bottom: 1px solid #dee2e6; display: flex; align-items: center; gap: 15px; flex-shrink: 0; }
-        #hot-container-wrapper { flex-grow: 1; position: relative; width: 100%; overflow: hidden; }
-        #hot-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-        .vertical-cat { background-color: #e8f5e9 !important; color: #1b5e20 !important; font-weight: bold !important; text-align: center !important; vertical-align: middle !important; border-right: 2px solid #2e7d32 !important; padding: 0 !important; }
-        .cat-text { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; display: inline-block; padding: 10px 5px; font-size: 11px; text-transform: uppercase; }
+        .risk-editor-container {
+            height: calc(100vh - 250px);
+            min-height: 600px;
+            width: 100%;
+            background: white;
+            position: relative;
+            border: 1px solid #dee2e6;
+        }
+
+        /* Styles Entêtes ISO (Couleurs originales conservées) */
         .handsontable thead tr:nth-child(1) th { background-color: #c00000 !important; color: white !important; font-size: 14px; }
         .handsontable thead tr:nth-child(2) th { background-color: #002060 !important; color: white !important; font-size: 12px; }
         .handsontable thead tr:nth-child(3) th { background-color: #595959 !important; color: white !important; }
         .handsontable thead tr:nth-child(4) th { background-color: #bdd7ee !important; color: #002060 !important; font-size: 10px; }
+
+        .handsontable td { vertical-align: middle !important; border: 1px solid #ccc !important; font-size: 12px; }
+        .vertical-cat { background-color: #e8f5e9 !important; color: #1b5e20 !important; font-weight: bold !important; text-align: center !important; vertical-align: middle !important; border-right: 2px solid #2e7d32 !important; padding: 0 !important; }
+        .cat-text { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; display: inline-block; padding: 10px 5px; font-size: 11px; text-transform: uppercase; }
+
+        /* Niveaux Thermiques */
         .risk-faible { background-color: #92d050 !important; text-align: center; font-weight: bold; }
         .risk-modere { background-color: #ffff00 !important; text-align: center; font-weight: bold; }
         .risk-significatif { background-color: #ffc000 !important; text-align: center; font-weight: bold; }
         .risk-critique { background-color: #ff0000 !important; color: white !important; text-align: center; font-weight: bold; }
 
-        /* Toast */
-        .toast-notif {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 9999;
-            display: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            color: white;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-        }
+        .filter-bar-custom { background: #f8f9fa; padding: 10px 15px; border-bottom: 1px solid #dee2e6; }
+        #toast-notif { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: none; padding: 12px 25px; border-radius: 5px; color: white; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
     </style>
-</head>
-<body>
-<div class="main-container">
-    <div class="d-flex gap-2">
-        <button class="btn btn-outline-dark btn-sm" onclick="openHistory()">
-            <i class="bi bi-clock-history"></i> Historique des versions
-        </button>
-        <button class="btn btn-success btn-sm px-4" onclick="saveData()">
-            <i class="bi bi-cloud-check"></i> Enregistrer
-        </button>
 
-        <a href="/rssi/risk-editor/sync-to-excel" class="btn btn-outline-success btn-sm shadow-sm">
-            <i class="bi bi-arrow-repeat"></i> Sync BD -> Excel
-        </a>
-    </div>
-
-    <!-- PANNEAU LATÉRAL : HISTORIQUE DES VERSIONS (Bootstrap 5 Offcanvas) -->
-    <div class="offcanvas offcanvas-end" tabindex="-1" id="historyPanel" style="width: 400px;">
-        <div class="offcanvas-header bg-dark text-white">
-            <h5 class="offcanvas-title"><i class="bi bi-archive"></i> Versions Archivées</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
-        </div>
-        <div class="offcanvas-body p-0">
-            <div class="list-group list-group-flush" id="historyList">
-                <!-- Les versions seront injectées ici par JavaScript -->
-                <div class="p-4 text-center text-muted">Chargement de l'historique...</div>
+    <div class="card card-outline card-danger shadow-sm">
+        <div class="card-header border-bottom-0">
+            <h3 class="card-title font-weight-bold"><i class="fas fa-biohazard mr-2 text-danger"></i> Registre Appréciation & Traitement</h3>
+            <div class="card-tools d-flex">
+                <button class="btn btn-dark btn-sm mr-2" onclick="openHistory()"><i class="fas fa-history mr-1"></i> Versions</button>
+                <a href="/rssi/risk-editor/sync-to-excel" class="btn btn-outline-success btn-sm mr-2"><i class="fas fa-file-excel mr-1"></i> Sync BD -> Excel</a>
+                <button class="btn btn-success btn-sm px-4 font-weight-bold shadow-sm" onclick="saveData()"><i class="fas fa-save mr-1"></i> ENREGISTRER</button>
             </div>
         </div>
-        <div class="offcanvas-footer p-3 bg-light border-top">
-            <small class="text-muted italic"><i class="bi bi-info-circle"></i> Chaque enregistrement génère un fichier de traçabilité conforme ISO 27001.</small>
-        </div>
-    </div>
-<%--
-    <div class="header-bar">
-        <h5 class="m-0 fw-bold"><i class="bi bi-shield-lock-fill text-danger"></i> Registre ISO 27005</h5>
-        <button class="btn btn-success btn-sm px-4" onclick="saveData()">Enregistrer</button>
-        <a href="/rssi/risk-editor/sync-to-excel" class="btn btn-outline-success btn-sm shadow-sm">
-            <i class="bi bi-arrow-repeat"></i> Sync BD -> Excel
-        </a>
-    </div>
---%>
-    <div class="filter-bar">
-        <div class="input-group input-group-sm" style="width: 250px;">
-            <span class="input-group-text"><i class="bi bi-search"></i></span>
-            <input type="text" id="searchBox" class="form-control" placeholder="Rechercher..." oninput="applyFilters()">
-        </div>
-        <select id="filterCat" class="form-select form-select-sm" style="width: 220px;" onchange="applyFilters()">
-            <option value="">Toutes les catégories</option>
-        </select>
-        <select id="filterRisk" class="form-select form-select-sm" style="width: 180px;" onchange="applyFilters()">
-            <option value="">Tous les risques</option>
-            <option value="critique">🔴 Critique (>35)</option>
-            <option value="significatif">🟠 Significatif (24-35)</option>
-            <option value="modere">🟡 Modéré (13-23)</option>
-            <option value="faible">🟢 Faible (≤12)</option>
-        </select>
-        <button class="btn btn-outline-secondary btn-sm" onclick="resetFilters()">Réinitialiser</button>
-        <span class="ms-auto badge bg-secondary" id="countLabel">Risques : 0</span>
-    </div>
-    <div id="hot-container-wrapper">
-        <div id="hot-container"></div>
-    </div>
-</div>
 
-<!-- Modal pour ajouter une catégorie -->
-<div class="modal fade" id="categoryModal" tabindex="-1">
-    <div class="modal-dialog modal-sm">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Ajouter une ligne avec catégorie</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <div class="filter-bar-custom d-flex align-items-center">
+            <div class="input-group input-group-sm mr-3" style="width: 230px;">
+                <input type="text" id="searchBox" class="form-control" placeholder="Rechercher..." oninput="applyFilters()">
             </div>
-            <div class="modal-body">
-                <select id="categorySelect" class="form-select mb-2">
-                    <option value="">Sélectionner une catégorie existante</option>
-                </select>
-                <div class="input-group">
-                    <input type="text" id="newCategoryInput" class="form-control" placeholder="Ou nouvelle catégorie">
-                    <button class="btn btn-outline-secondary" type="button" id="addNewCategoryBtn">Ajouter</button>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                <button type="button" class="btn btn-primary" id="confirmCategory">OK</button>
+
+            <select id="filterCat" class="form-control form-control-sm mr-3" style="width: 220px;" onchange="applyFilters()">
+                <option value="">Toutes les catégories</option>
+            </select>
+
+            <select id="filterRisk" class="form-control form-control-sm mr-3" style="width: 180px;" onchange="applyFilters()">
+                <option value="">Tous les risques</option>
+                <option value="critique">🔴 Critique (>35)</option>
+                <option value="significatif">🟠 Significatif (24-35)</option>
+                <option value="modere">🟡 Modéré (13-23)</option>
+                <option value="faible">🟢 Faible (≤12)</option>
+            </select>
+
+            <button class="btn btn-tool" onclick="resetFilters()"><i class="fas fa-undo"></i></button>
+            <span class="ml-auto badge badge-secondary" id="countLabel">Risques : 0</span>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="risk-editor-container" id="hot-container-wrapper">
+                <div id="hot-container"></div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Toast -->
-<div id="toast" class="toast-notif"></div>
-
-
-
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/handsontable@14.0.0/dist/handsontable.full.min.js"></script>
-<script>
-    let hot;
-    let allData = [];               // données brutes (toutes)
-    let effectiveCategoriesAll = []; // catégories effectives pour allData
-    let filteredData = [];          // données après filtrage
-    let filteredEffective = [];     // catégories effectives pour filteredData
-    let updating = false;           // flag pour éviter les boucles
-
-    // Modal Bootstrap
-    let categoryModal;
-
-    // Valeur par défaut pour une nouvelle ligne
-    const defaultRow = {
-        categorie: '',
-        menaces: '',
-        origine: '',
-        actifs: '',
-        ref: '',
-        proprio: '',
-        scenario: '',
-        vulner: '',
-        d: 1,
-        i: 1,
-        c: 1,
-        impOrg: 1,
-        impJur: 1,
-        impImg: 1,
-        impFin: 1,
-        proba: 1,
-        grav: 1,
-        scoreRes: 1,
-        optionTrait: 'Traiter (réduire)',
-        actions: '',
-        besoinC: 1,
-        probC: 1,
-        gravC: 1,
-        scoreCible: 1,
-        optionApres: ''
-    };
-
-    // En-têtes imbriqués (identique)
-    const nestedHeaders = [
-        [{label: 'REGISTRE DES RISQUES DE SÉCURITÉ DE L\'INFORMATION', colspan: 25}],
-        [{label: 'IDENTIFICATION DU RISQUE', colspan: 8}, {label: 'APPRÉCIATION DES RISQUES', colspan: 10}, {label: 'TRAITEMENT DU RISQUE', colspan: 7}],
-        ['Catégorie', 'Menaces', 'Origine', 'Actifs', 'Réf.', 'Proprio', 'Scénario', 'Vulnérabilité', 'D','I','C', 'Imp.Org','Imp.Jur','Imp.Img','Imp.Fin', 'Prob.','Grav.','Score', 'Option', 'Actions', 'Bes.C','Prob.C','Grav.C','Score C', 'Fin'],
-        ['', '', '', '', '', '', '', '', '','','', '','','','', '','','', '', '', '','','','', '']
-    ];
-
-    // ========== Fonctions utilitaires ==========
-    function computeEffectiveCategories(data) {
-        let effective = [];
-        let lastValid = '';
-        for (let i = 0; i < data.length; i++) {
-            let cat = data[i].categorie;
-            if (cat && typeof cat === 'string' && cat.trim() !== '') {
-                lastValid = cat.trim();
-            }
-            effective.push(lastValid);
-        }
-        return effective;
-    }
-
-    function calculateMergesFromEffective(effective) {
-        let merges = [];
-        if (!effective.length) return merges;
-        let start = 0;
-        for (let i = 1; i <= effective.length; i++) {
-            if (i === effective.length || effective[i] !== effective[start]) {
-                if (i - start > 1) merges.push({ row: start, col: 0, rowspan: i - start, colspan: 1 });
-                start = i;
-            }
-        }
-        return merges;
-    }
-
-    function showToast(message, type = 'success') {
-        const toast = document.getElementById('toast');
-        toast.style.display = 'block';
-        toast.style.backgroundColor = type === 'success' ? '#28a745' : (type === 'error' ? '#dc3545' : '#ffc107');
-        toast.style.color = 'white';
-        toast.textContent = message;
-        setTimeout(() => { toast.style.display = 'none'; }, 3000);
-    }
-
-    // Mise à jour de l'affichage avec les données filtrées
-    function refreshDisplay() {
-        if (!hot) return;
-        updating = true;
-        hot.loadData(filteredData);
-        hot.updateSettings({
-            mergeCells: calculateMergesFromEffective(filteredEffective),
-            effectiveCategories: filteredEffective
-        });
-        updating = false;
-        document.getElementById('countLabel').innerText = 'Risques : ' + filteredData.length;
-    }
-
-    // Appliquer les filtres (catégorie, risque, recherche)
-    function applyFilters() {
-        const searchText = document.getElementById('searchBox').value.toLowerCase();
-        let selectedCat = document.getElementById('filterCat').value;
-        const selectedRisk = document.getElementById('filterRisk').value;
-        if (selectedCat) selectedCat = selectedCat.trim();
-
-        console.group('🔍 Application des filtres');
-        console.log('Filtre catégorie :', selectedCat || 'aucun');
-        console.log('Filtre risque    :', selectedRisk || 'aucun');
-        console.log('Recherche texte  :', searchText || 'aucun');
-
-        const indices = [];
-        for (let i = 0; i < allData.length; i++) {
-            const item = allData[i];
-            const effCat = effectiveCategoriesAll[i];
-            let ok = true;
-            if (searchText && !JSON.stringify(item).toLowerCase().includes(searchText)) ok = false;
-            if (ok && selectedCat && effCat !== selectedCat) ok = false;
-            if (ok && selectedRisk) {
-                const score = parseInt(item.scoreRes) || 0;
-                if (selectedRisk === 'faible' && score > 12) ok = false;
-                else if (selectedRisk === 'modere' && (score <= 12 || score > 23)) ok = false;
-                else if (selectedRisk === 'significatif' && (score <= 23 || score > 35)) ok = false;
-                else if (selectedRisk === 'critique' && score <= 35) ok = false;
-            }
-            if (ok) {
-                indices.push(i);
-                console.log(`✅ ${item.ref} (score=${item.scoreRes}, cat_eff="${effCat}")`);
-            } else {
-                console.log(`❌ ${item.ref} (score=${item.scoreRes}, cat_eff="${effCat}")`);
-            }
-        }
-        filteredData = indices.map(i => allData[i]);
-        filteredEffective = indices.map(i => effectiveCategoriesAll[i]);
-
-        console.log(`📊 Données filtrées : ${filteredData.length} sur ${allData.length}`);
-        console.groupEnd();
-
-        refreshDisplay();
-    }
-
-    function resetFilters() {
-        document.getElementById('searchBox').value = '';
-        document.getElementById('filterCat').value = '';
-        document.getElementById('filterRisk').value = '';
-        applyFilters();
-    }
-
-    // ========== Fonctions d'édition des données ==========
-    function insertRowAbove() {
-        const selected = hot.getSelectedLast();
-        if (!selected) {
-            showToast('Veuillez sélectionner une ligne', 'warning');
-            return;
-        }
-        const rowIndex = selected[0]; // index dans filteredData
-        if (!filteredData[rowIndex]) return;
-        const selectedRef = filteredData[rowIndex].ref;
-        const originalIndex = allData.findIndex(d => d.ref === selectedRef);
-        if (originalIndex === -1) return;
-
-        const newRow = { ...defaultRow };
-        newRow.categorie = effectiveCategoriesAll[originalIndex];
-        allData.splice(originalIndex, 0, newRow);
-        effectiveCategoriesAll = computeEffectiveCategories(allData);
-        applyFilters();
-        showToast('Ligne insérée au-dessus');
-    }
-
-    function insertRowBelow() {
-        const selected = hot.getSelectedLast();
-        if (!selected) {
-            showToast('Veuillez sélectionner une ligne', 'warning');
-            return;
-        }
-        const rowIndex = selected[0];
-        if (!filteredData[rowIndex]) return;
-        const selectedRef = filteredData[rowIndex].ref;
-        const originalIndex = allData.findIndex(d => d.ref === selectedRef);
-        if (originalIndex === -1) return;
-
-        const newRow = { ...defaultRow };
-        newRow.categorie = effectiveCategoriesAll[originalIndex];
-        allData.splice(originalIndex + 1, 0, newRow);
-        effectiveCategoriesAll = computeEffectiveCategories(allData);
-        applyFilters();
-        showToast('Ligne insérée en dessous');
-    }
-
-
-    function blurActiveElement() {
-        if (document.activeElement && document.activeElement.blur) {
-            document.activeElement.blur();
-        }
-    }
-
-    function openCategoryModal() {
-        blurActiveElement(); // 👈 retirer le focus
-        const uniqueCats = [...new Set(effectiveCategoriesAll)].filter(c => c && c !== '').sort();
-        const select = document.getElementById('categorySelect');
-        select.innerHTML = '<option value="">Sélectionner une catégorie existante</option>';
-        uniqueCats.forEach(c => select.add(new Option(c, c)));
-        document.getElementById('newCategoryInput').value = '';
-        categoryModal.show();
-    }
-
-    function generateRef(category) {
-        // Prendre les 3 premiers caractères alphanumériques
-        let prefix = category.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().substring(0, 3);
-        if (prefix.length < 3) prefix = prefix + "X";
-        // Compter combien de refs commencent par ce préfixe
-        let count = allData.filter(r => r.ref && r.ref.startsWith(prefix)).length + 1;
-        return `${prefix}-${count}`;
-    }
-
-    function addRowWithCategory(category) {
-        if (!category) {
-            showToast('Veuillez choisir une catégorie', 'warning');
-            return;
-        }
-        let insertIndex = allData.length;
-        for (let i = allData.length - 1; i >= 0; i--) {
-            if (effectiveCategoriesAll[i] === category) {
-                insertIndex = i + 1;
-                break;
-            }
-        }
-        // const newRow = { ...defaultRow, categorie: category };
-        const newRow = { ...defaultRow, categorie: category, ref: generateRef(category) };
-        allData.splice(insertIndex, 0, newRow);
-        effectiveCategoriesAll = computeEffectiveCategories(allData);
-        applyFilters();
-        showToast(`Ligne ajoutée avec catégorie "${category}"`);
-    }
-
-    // ========== Gestion du modal ==========
-    document.getElementById('addNewCategoryBtn').addEventListener('click', function() {
-        const newCat = document.getElementById('newCategoryInput').value.trim();
-        if (newCat) {
-            const select = document.getElementById('categorySelect');
-            const option = document.createElement('option');
-            option.value = newCat;
-            option.textContent = newCat;
-            option.selected = true;
-            select.appendChild(option);
-        }
-    });
-
-    let pendingCategory = null;
-
-
-
-    document.getElementById('confirmCategory').addEventListener('click', function() {
-        const select = document.getElementById('categorySelect');
-        let category = select.value;
-        const newCat = document.getElementById('newCategoryInput').value.trim();
-        if (newCat) category = newCat;
-        if (!category) {
-            showToast('Veuillez choisir une catégorie', 'warning');
-            return;
-        }
-        pendingCategory = category;
-        // Déplacer le focus avant de fermer le modal
-        document.body.focus();  // ou document.activeElement.blur()
-        categoryModal.hide();
-    });
-
-
-    // Lorsque le modal a fini de se fermer, exécute l'ajout
-    document.getElementById('categoryModal').addEventListener('hidden.bs.modal', function() {
-        if (pendingCategory) {
-            addRowWithCategory(pendingCategory);
-            pendingCategory = null;
-        }
-    });
-    // ========== Alignement ==========
-    function applyAlignment(className) {
-        const selected = hot.getSelected();
-        if (!selected) return;
-        const [startRow, startCol, endRow, endCol] = selected[0];
-        for (let r = startRow; r <= endRow; r++) {
-            for (let c = startCol; c <= endCol; c++) {
-                let cellMeta = hot.getCellMeta(r, c);
-                let classes = cellMeta.className ? cellMeta.className.split(' ') : [];
-                classes = classes.filter(cls => !cls.startsWith('htLeft') && !cls.startsWith('htCenter') && !cls.startsWith('htRight') && !cls.startsWith('htJustify'));
-                classes.push(className);
-                hot.setCellMeta(r, c, 'className', classes.join(' '));
-            }
-        }
-        hot.render();
-        showToast('Alignement appliqué');
-    }
-
-    function propagateCategoriesToData() {
-        let lastValid = '';
-        for (let i = 0; i < allData.length; i++) {
-            let cat = allData[i].categorie;
-            if (cat && typeof cat === 'string' && cat.trim() !== '') {
-                lastValid = cat.trim();
-            }
-            if (lastValid !== '') {
-                allData[i].categorie = lastValid;
-            }
-        }
-        console.log("🔄 Après propagation :", allData.map(d => ({ref: d.ref, cat: d.categorie})));
-    }
-
-    // ========== Sauvegarde ==========
-    // function saveData() {
-    //     if (allData && allData.length > 0) {
-    //         fetch('/rssi/risk-editor/save', {
-    //             method: 'POST',
-    //             headers: {'Content-Type': 'application/json'},
-    //             body: JSON.stringify(allData)
-    //         })
-    //             .then(res => res.text())
-    //             .then(msg => {
-    //                 if (msg.includes("SUCCESS")) {
-    //                     showToast('✅ Sauvegarde réussie !');
-    //                 } else {
-    //                     showToast('❌ Erreur : ' + msg, 'error');
-    //                 }
-    //             })
-    //             .catch(err => {
-    //                 console.error(err);
-    //                 showToast('Erreur réseau', 'error');
-    //             });
-    //     } else {
-    //         showToast('Aucune donnée à sauvegarder', 'warning');
-    //     }
-    // }
-
-
-    function saveData() {
-        if (allData && allData.length > 0) {
-            propagateCategoriesToData();
-
-            showToast('🔄 Création de la version et sauvegarde BD...', 'warning');
-
-            fetch('/rssi/risk-editor/save', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(allData)
-            })
-                .then(res => res.text())
-                .then(msg => {
-                    if (msg.includes("SUCCESS")) {
-                        showToast('✅ Données sauvegardées et version archivée !');
-                        // Actualiser la liste de l'historique si le panneau est ouvert
-                        loadHistory();
-                    } else {
-                        showToast('❌ Erreur : ' + msg, 'error');
-                    }
-                })
-                .catch(err => {
-                    console.error(err);
-                    showToast('Erreur réseau', 'error');
-                });
-        }
-    }
-
-    // FONCTION POUR RÉCUPÉRER L'HISTORIQUE
-    function openHistory() {
-        const myOffcanvas = new bootstrap.Offcanvas(document.getElementById('historyPanel'));
-        myOffcanvas.show();
-        loadHistory();
-    }
-
-
-    function loadHistory() {
-        fetch('/rssi/risk-editor/history')
-            .then(res => res.json())
-            .then(data => {
-                const list = document.getElementById('historyList');
-                if (!data || data.length === 0) {
-                    list.innerHTML = '<div class="p-4 text-center">Aucune archive disponible.</div>';
-                    return;
-                }
-
-                // NOTE LE \ DEVANT LE $ : C'est la clé de la correction
-                list.innerHTML = data.map(file => `
-                <div class="list-group-item list-group-item-action p-3">
-                    <div class="d-flex w-100 justify-content-between align-items-center">
-                        <div style="max-width: 80%;">
-                            <h6 class="mb-1 text-dark fw-bold" style="font-size: 0.85rem; word-break: break-all;">
-                                <i class="bi bi-file-earmark-spreadsheet-fill text-success me-2"></i> \${file.name}
-                            </h6>
-                            <div class="text-muted" style="font-size: 0.75rem;">
-                                <i class="bi bi-calendar3 me-1"></i> Généré le : \${file.date}
-                            </div>
-                        </div>
-                        <a href="/rssi/risk-editor/download-version?name=\${file.name}"
-                           class="btn btn-sm btn-outline-danger border-0 fs-5" title="Télécharger">
-                            <i class="bi bi-download"></i>
-                        </a>
+    <!-- MODAL CATEGORIE (Standard BS4) -->
+    <div class="modal fade" id="categoryModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-dark text-white"><h5>Ajouter Scenario</h5><button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button></div>
+                <div class="modal-body">
+                    <label class="small fw-bold">Catégorie Existante</label>
+                    <select id="categorySelect" class="form-control mb-2"></select>
+                    <div class="input-group">
+                        <input type="text" id="newCategoryInput" class="form-control" placeholder="Nouvelle...">
+                        <div class="input-group-append"><button class="btn btn-secondary btn-sm" type="button" id="addNewCategoryBtn">OK</button></div>
                     </div>
                 </div>
-            `).join('');
-            })
-            .catch(err => {
-                console.error("Erreur historique:", err);
-                document.getElementById('historyList').innerHTML = '<div class="p-3 text-danger">Erreur de chargement</div>';
-            });
-    }
-/*
-    function loadHistory() {
-        fetch('/rssi/risk-editor/history')
-            .then(res => res.json())
-            .then(files => {
-                const list = document.getElementById('historyList');
-                if (files.length === 0) {
-                    list.innerHTML = '<div class="p-4 text-center">Aucune version trouvée.</div>';
-                    return;
-                }
+                <div class="modal-footer"><button type="button" class="btn btn-danger btn-block font-weight-bold" id="confirmCategory">VALIDER</button></div>
+            </div>
+        </div>
+    </div>
 
-                list.innerHTML = files.map(filename => `
-                    <div class="list-group-item list-group-item-action p-3">
-                        <div class="d-flex w-100 justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-1 text-primary"><i class="bi bi-file-earmark-spreadsheet"></i> ${filename}</h6>
-                                <small class="text-muted">Type: Registre des risques</small>
-                            </div>
-                            <a href="/rssi/risk-editor/download-version?name=${filename}" class="btn btn-sm btn-outline-secondary">
-                                <i class="bi bi-download"></i>
-                            </a>
-                        </div>
-                    </div>
-                `).join('');
-            });
-    }
-*/
+    <!-- MODAL HISTORIQUE -->
+    <div class="modal fade" id="historyPanel" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content shadow-lg">
+                <div class="modal-header bg-dark text-white"><h5>Archives de traçabilité</h5><button type="button" class="close text-white" data-dismiss="modal">&times;</button></div>
+                <div class="modal-body p-0" id="historyList"><div class="p-5 text-center">Récupération de l'historique...</div></div>
+            </div>
+        </div>
+    </div>
 
+    <div id="toast-notif"></div>
 
-    /*
-        function saveData() {
-            if (allData && allData.length > 0) {
-                // Propager les catégories avant envoi
-                propagateCategoriesToData();
-                console.log("📤 Données après propagation (allData) :", JSON.parse(JSON.stringify(allData)));
-                console.log("Nombre d'éléments :", allData.length);
+    <script src="https://cdn.jsdelivr.net/npm/handsontable@14.0.0/dist/handsontable.full.min.js"></script>
 
-                fetch('/rssi/risk-editor/save', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(allData)
-                })
-                    .then(res => res.text())
-                    .then(msg => {
-                        console.log("✅ Réponse serveur :", msg);
-                        if (msg.includes("SUCCESS")) {
-                            showToast('✅ Sauvegarde réussie !');
-                            // Recharger les données depuis le serveur
-                            fetch('/rssi/risk-editor/data-json')
-                                .then(res => res.json())
-                                .then(data => init(data))
-                                .catch(err => console.error("Erreur rechargement :", err));
-                        } else {
-                            showToast('❌ Erreur : ' + msg, 'error');
-                        }
-                    })
-                    .catch(err => {
-                        console.error("❌ Erreur réseau :", err);
-                        showToast('Erreur réseau', 'error');
-                    });
-            } else {
-                showToast('Aucune donnée à sauvegarder', 'warning');
-            }
-        }
-    */
+    <script>
+        let hot;
+        let allData = [];
+        let effectiveCategoriesAll = [];
+        let filteredData = [];
+        let filteredEffective = [];
+        let updating = false;
 
+        const defaultRow = { categorie: '', menaces: '', origine: '', actifs: '', ref: '', proprio: '', scenario: '', vulner: '', d: 1, i: 1, c: 1, impOrg: 1, impJur: 1, impImg: 1, impFin: 1, proba: 1, grav: 1, scoreRes: 1, optionTrait: 'Traiter (réduire)', actions: '', besoinC: 1, probC: 1, gravC: 1, scoreCible: 1, optionApres: '' };
 
-    // ========== Initialisation ==========
-    function init(data) {
-        console.group('📥 Chargement initial des données');
-        console.log('Données brutes reçues :', data);
-        console.log('Nombre de risques :', data.length);
-
-        allData = data;
-        effectiveCategoriesAll = computeEffectiveCategories(allData);
-        console.log('Catégories effectives calculées :', effectiveCategoriesAll);
-
-        const uniqueCats = [...new Set(effectiveCategoriesAll)].filter(c => c && c !== '').sort();
-        const catSelect = document.getElementById('filterCat');
-        catSelect.innerHTML = '<option value="">Toutes les catégories</option>';
-        uniqueCats.forEach(c => catSelect.add(new Option(c, c)));
-        console.log('Catégories uniques :', uniqueCats);
-        console.groupEnd();
-
-        const container = document.getElementById('hot-container');
-        // Définition explicite des colonnes dans l'ordre des en-têtes (25 colonnes)
-        const columns = [
-            { data: 'categorie' },
-            { data: 'menaces' },
-            { data: 'origine' },
-            { data: 'actifs' },
-            { data: 'ref' },
-            { data: 'proprio' },
-            { data: 'scenario' },
-            { data: 'vulner' },
-            { data: 'd', type: 'numeric' },      // Doit matcher e.getValD() -> r.put("d", ...)
-            { data: 'i', type: 'numeric' },
-            { data: 'c', type: 'numeric' },
-            { data: 'impOrg', type: 'numeric' },
-            { data: 'impJur', type: 'numeric' },
-            { data: 'impImg', type: 'numeric' },
-            { data: 'impFin', type: 'numeric' },
-            { data: 'proba', type: 'numeric' },
-            { data: 'grav', type: 'numeric' },
-            { data: 'scoreRes', readOnly: true },
-            { data: 'optionTrait', type: 'dropdown', source: ['Accepter', 'Surveiller / Accepter avec suivi', 'Traiter (réduire)', 'Éviter / Transférer'] },
-            { data: 'actions' },
-            { data: 'besoinC', type: 'numeric' },
-            { data: 'probC', type: 'numeric' },
-            { data: 'gravC', type: 'numeric' },
-            { data: 'scoreCible', type: 'numeric', readOnly: true },
-            { data: 'optionApres', readOnly: true }
+        const nestedHeaders = [
+            [{label: 'REGISTRE DES RISQUES DE SÉCURITÉ DE L\'INFORMATION', colspan: 25}],
+            [{label: 'IDENTIFICATION DU RISQUE', colspan: 8}, {label: 'APPRÉCIATION DES RISQUES', colspan: 10}, {label: 'TRAITEMENT DU RISQUE', colspan: 7}],
+            ['Catégorie', 'Menaces', 'Origine', 'Actifs', 'Réf.', 'Proprio', 'Scénario', 'Vulnérabilité', 'D','I','C', 'Imp.Org','Imp.Jur','Imp.Img','Imp.Fin', 'Prob.','Grav.','Score', 'Option', 'Actions', 'Bes.C','Prob.C','Grav.C','Score C', 'Fin'],
+            ['', '', '', '', '', '', '', '', '','','', '','','','', '','','', '', '', '','','','', '']
         ];
 
-        // Fonction pour déterminer l'option en fonction du score (seuils fournis)
-        function getOptionFromScore(score) {
-            if (score <= 12) return 'Accepter';
-            if (score <= 23) return 'Surveiller / Accepter avec suivi';
-            if (score <= 35) return 'Traiter (réduire)';
-            return 'Éviter / Transférer';
+        // --- Fonctions Utilitaires ---
+        function computeEffectiveCategories(data) {
+            let effective = []; let last = '';
+            data.forEach(d => { if (d.categorie && d.categorie.trim() !== '') last = d.categorie.trim(); effective.push(last); });
+            return effective;
         }
 
-        // Fonction de recalcul pour une ligne donnée
-        function recalcRow(rowData) {
-            // Score résiduel
-            let d = parseInt(rowData.d) || 1;
-            let i = parseInt(rowData.i) || 1;
-            let c = parseInt(rowData.c) || 1;
-            let proba = parseInt(rowData.proba) || 1;
-            let grav = parseInt(rowData.grav) || 1;
-            let maxDIC = Math.max(d, i, c);
-            let scoreRes = maxDIC * proba * grav;
-            rowData.scoreRes = scoreRes;
-            rowData.optionTrait = getOptionFromScore(scoreRes);
-
-            // Score cible
-            let besoinC = parseInt(rowData.besoinC) || 1;
-            let probC = parseInt(rowData.probC) || 1;
-            let gravC = parseInt(rowData.gravC) || 1;
-            let scoreCible = besoinC * probC * gravC;
-            rowData.scoreCible = scoreCible;
-            rowData.optionApres = getOptionFromScore(scoreCible);
-        }
-
-
-
-        hot = new Handsontable(container, {
-            data: allData,
-            columns: columns,
-            nestedHeaders: nestedHeaders,
-            licenseKey: 'non-commercial-and-evaluation',
-            stretchH: 'all',
-            width: '100%',
-            height: '100%',
-            rowHeaders: true,
-            undo: true,
-            colWidths: [60, 250, 60, 150, 70, 100, 250, 200, 30, 30, 30, 30, 30, 30, 30, 40, 40, 60, 150, 200, 40, 40, 40, 60, 100],
-            manualColumnResize: true,
-            mergeCells: calculateMergesFromEffective(effectiveCategoriesAll),
-            effectiveCategories: effectiveCategoriesAll,
-            cells: function() { return { renderer: customRenderer }; },
-            contextMenu: {
-                items: {
-                    'cut': { name: 'Couper' },
-                    'copy': { name: 'Copier' },
-                    'copy_with_column_headers': { name: 'Copier avec en-têtes' },
-                    'paste': { name: 'Coller' },
-                    'separator1': '---------',
-                    'add_category': {
-                        name: 'Ajouter une ligne (choisir catégorie)',
-                        callback: openCategoryModal
-                    },
-                    'separator2': '---------',
-                    'row_above_custom': {
-                        name: 'Insérer une ligne au-dessus (même catégorie)',
-                        callback: insertRowAbove
-                    },
-                    'row_below_custom': {
-                        name: 'Insérer une ligne en dessous (même catégorie)',
-                        callback: insertRowBelow
-                    },
-                    'remove_row': {
-                        name: 'Supprimer la ligne',
-                        callback: function() {
-                            const selected = hot.getSelected();
-                            if (selected) {
-                                const rowsToDelete = [...new Set(selected.map(r => r[0]))].sort((a,b)=>b-a);
-                                for (let r of rowsToDelete) {
-                                    if (filteredData[r] && filteredData[r].ref) {
-                                        const ref = filteredData[r].ref;
-                                        const idx = allData.findIndex(d => d.ref === ref);
-                                        if (idx !== -1) allData.splice(idx, 1);
-                                    }
-                                }
-                                effectiveCategoriesAll = computeEffectiveCategories(allData);
-                                applyFilters();
-                                showToast('Ligne(s) supprimée(s)');
-                            }
-                        }
-                    },
-                    'separator3': '---------',
-                    'merge_categories': {
-                        name: 'Fusionner les catégories identiques',
-                        callback: function() {
-                            const currentEffective = filteredEffective;
-                            this.updateSettings({ mergeCells: calculateMergesFromEffective(currentEffective) });
-                            showToast('Fusions recalculées');
-                        }
-                    },
-                    'separator4': '---------',
-                    'alignment': {
-                        name: 'Alignement',
-                        submenu: {
-                            items: [
-                                { key: 'alignment:left', name: 'Gauche', callback: () => applyAlignment('htLeft') },
-                                { key: 'alignment:center', name: 'Centre', callback: () => applyAlignment('htCenter') },
-                                { key: 'alignment:right', name: 'Droite', callback: () => applyAlignment('htRight') },
-                                { key: 'alignment:justify', name: 'Justifier', callback: () => applyAlignment('htJustify') }
-                            ]
-                        }
-                    },
-                    'separator5': '---------',
-                    'undo': { name: 'Annuler (Ctrl+Z)' },
-                    'redo': { name: 'Rétablir (Ctrl+Y)' },
-                    'separator6': '---------',
-                    'filter_by_value': { name: 'Filtrer par valeur' },
-                    'filter_clear': { name: 'Effacer les filtres' }
+        function calculateMerges(effective) {
+            let m = []; if (!effective.length) return m;
+            let start = 0;
+            for (let i = 1; i <= effective.length; i++) {
+                if (i === effective.length || effective[i] !== effective[start]) {
+                    if (i - start > 1) m.push({ row: start, col: 0, rowspan: i - start, colspan: 1 });
+                    start = i;
                 }
-            },
-            afterChange: function(changes, source) {
-                if (updating) return;
-                if (source !== 'loadData' && changes) {
-                    // Récupérer les lignes modifiées et recalculer
-                    const affectedRows = new Set();
-                    for (let change of changes) {
-                        const row = change[0];
-                        const prop = change[1];
-                        // Seules les colonnes qui influencent les scores déclenchent le recalcul
+            }
+            return m;
+        }
+
+        function generateRef(category) {
+            let prefix = category.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().substring(0, 3);
+            if (prefix.length < 3) prefix += "X";
+            let count = allData.filter(r => r.ref && r.ref.startsWith(prefix)).length + 1;
+            return `\${prefix}-\${count}`; // Échappement JSP pour \${}
+        }
+
+        function showToast(message, type = 'success') {
+            const t = document.getElementById('toast-notif');
+            t.style.display = 'block';
+            t.style.backgroundColor = type === 'success' ? '#28a745' : (type === 'error' ? '#dc3545' : '#ffc107');
+            t.textContent = message;
+            setTimeout(() => t.style.display = 'none', 3000);
+        }
+
+        // --- Moteur de Filtrage ---
+        function applyFilters() {
+            const q = document.getElementById('searchBox').value.toLowerCase();
+            const cat = document.getElementById('filterCat').value.trim();
+            const rk = document.getElementById('filterRisk').value;
+            const idxs = [];
+            allData.forEach((item, i) => {
+                let ok = true;
+                const effCat = effectiveCategoriesAll[i];
+                if (q && !JSON.stringify(item).toLowerCase().includes(q)) ok = false;
+                if (ok && cat && effCat !== cat) ok = false;
+                if (ok && rk) {
+                    const score = parseInt(item.scoreRes) || 0;
+                    if (rk === 'faible' && score > 12) ok = false;
+                    else if (rk === 'modere' && (score <= 12 || score > 23)) ok = false;
+                    else if (rk === 'significatif' && (score <= 23 || score > 35)) ok = false;
+                    else if (rk === 'critique' && score <= 35) ok = false;
+                }
+                if (ok) idxs.push(i);
+            });
+            filteredData = idxs.map(i => allData[i]);
+            filteredEffective = idxs.map(i => effectiveCategoriesAll[i]);
+            refreshDisplay();
+        }
+
+        function refreshDisplay() {
+            if (!hot) return;
+            updating = true;
+            hot.loadData(filteredData);
+            hot.updateSettings({
+                mergeCells: calculateMerges(filteredEffective),
+                effectiveCategories: filteredEffective
+            });
+            updating = false;
+            document.getElementById('countLabel').innerText = 'Risques : ' + filteredData.length;
+        }
+
+        // --- Manipulation des lignes ---
+        function insertRowAbove() {
+            const sel = hot.getSelectedLast();
+            if (!sel) return showToast('Sélectionnez une ligne', 'warning');
+            const origIdx = allData.findIndex(d => d.ref === filteredData[sel[0]].ref);
+            const row = { ...defaultRow, categorie: effectiveCategoriesAll[origIdx], ref: 'TMP-' + Date.now().toString().slice(-4) };
+            allData.splice(origIdx, 0, row);
+            updateAllLogic();
+        }
+
+        function insertRowBelow() {
+            const sel = hot.getSelectedLast();
+            if (!sel) return showToast('Sélectionnez une ligne', 'warning');
+            const origIdx = allData.findIndex(d => d.ref === filteredData[sel[0]].ref);
+            const row = { ...defaultRow, categorie: effectiveCategoriesAll[origIdx], ref: 'TMP-' + Date.now().toString().slice(-4) };
+            allData.splice(origIdx + 1, 0, row);
+            updateAllLogic();
+        }
+
+        function updateAllLogic() {
+            effectiveCategoriesAll = computeEffectiveCategories(allData);
+            applyFilters();
+        }
+
+        // --- Sauvegarde et Data ---
+        function propagateCategories() {
+            let last = '';
+            for (let i = 0; i < allData.length; i++) {
+                if (allData[i].categorie && allData[i].categorie.trim() !== '') last = allData[i].categorie.trim();
+                if (last !== '') allData[i].categorie = last;
+            }
+        }
+
+        function saveData() {
+            if (!allData.length) return;
+            propagateCategories();
+            showToast('🔄 Synchronisation BD...', 'warning');
+            fetch('/rssi/risk-editor/save', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(allData) })
+                .then(res => res.text()).then(m => {
+                if (m.includes("SUCCESS")) showToast('✅ Sauvegarde réussie et Archive créée');
+                else showToast('❌ Erreur : ' + m, 'error');
+            });
+        }
+
+        function openHistory() { $('#historyPanel').modal('show'); loadHistory(); }
+
+        function loadHistory() {
+            fetch('/rssi/risk-editor/history')
+                .then(res => res.json()).then(data => {
+                const list = document.getElementById('historyList');
+                if (!data.length) return list.innerHTML = '<div class="p-4 text-center">Aucune archive.</div>';
+                list.innerHTML = data.map(f => `
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div><h6 class="mb-0 text-sm font-weight-bold text-dark"><i class="fas fa-file-excel text-success mr-2"></i> \${f.name}</h6><small>Généré le: \${f.date}</small></div>
+                        <a href="/rssi/risk-editor/download-version?name=\${f.name}" class="btn btn-sm text-danger"><i class="fas fa-download"></i></a>
+                    </div>`).join('');
+            });
+        }
+
+        function init(data) {
+            allData = data;
+            effectiveCategoriesAll = computeEffectiveCategories(allData);
+            const uCats = [...new Set(effectiveCategoriesAll)].filter(c => c).sort();
+            const sel = document.getElementById('filterCat');
+            uCats.forEach(c => sel.add(new Option(c, c)));
+
+            hot = new Handsontable(document.getElementById('hot-container'), {
+                data: allData,
+                columns: [
+                    { data: 'categorie' }, { data: 'menaces' }, { data: 'origine' }, { data: 'actifs' }, { data: 'ref' }, { data: 'proprio' }, { data: 'scenario' }, { data: 'vulner' },
+                    { data: 'd', type: 'numeric' }, { data: 'i', type: 'numeric' }, { data: 'c', type: 'numeric' }, { data: 'impOrg', type: 'numeric' }, { data: 'impJur', type: 'numeric' }, { data: 'impImg', type: 'numeric' }, { data: 'impFin', type: 'numeric' }, { data: 'proba', type: 'numeric' }, { data: 'grav', type: 'numeric' }, { data: 'scoreRes', readOnly: true },
+                    { data: 'optionTrait', type: 'dropdown', source: ['Accepter', 'Surveiller', 'Traiter (réduire)', 'Éviter / Transférer'] },
+                    { data: 'actions' }, { data: 'besoinC', type: 'numeric' }, { data: 'probC', type: 'numeric' }, { data: 'gravC', type: 'numeric' }, { data: 'scoreCible', type: 'numeric', readOnly: true }, { data: 'optionApres', readOnly: true }
+                ],
+                nestedHeaders: nestedHeaders,
+                licenseKey: 'non-commercial-and-evaluation', stretchH: 'all', width: '100%', height: '100%', rowHeaders: true, manualColumnResize: true, undo: true,
+                mergeCells: calculateMerges(effectiveCategoriesAll),
+                effectiveCategories: effectiveCategoriesAll,
+                cells: function() { return { renderer: customRenderer }; },
+                contextMenu: {
+                    items: {
+                        'add_category': { name: '📌 Nouvelle Catégorie...', callback: function() {
+                                const unique = [...new Set(effectiveCategoriesAll)].filter(c => c).sort();
+                                const select = document.getElementById('categorySelect');
+                                select.innerHTML = '<option value="">Choisir...</option>';
+                                unique.forEach(c => select.add(new Option(c,c)));
+                                $('#categoryModal').modal('show');
+                            }},
+                        'sep1': '---------',
+                        'row_above_custom': { name: 'Ligne au-dessus', callback: insertRowAbove },
+                        'row_below_custom': { name: 'Ligne au-dessous', callback: insertRowBelow },
+                        'sep2': '---------',
+                        'alignment': { name: 'Alignement' },
+                        'copy': { name: 'Copier' }, 'paste': { name: 'Coller' }
+                    }
+                },
+                afterChange: function(changes, src) {
+                    if (updating || src === 'loadData' || !changes) return;
+                    changes.forEach(([row, prop]) => {
                         if (['d', 'i', 'c', 'proba', 'grav', 'besoinC', 'probC', 'gravC'].includes(prop)) {
-                            affectedRows.add(row);
+                            let rd = filteredData[row];
+                            let scoreRes = Math.max(parseInt(rd.d)||1, parseInt(rd.i)||1, parseInt(rd.c)||1) * (parseInt(rd.proba)||1) * (parseInt(rd.grav)||1);
+                            rd.scoreRes = scoreRes;
+                            rd.scoreCible = (parseInt(rd.besoinC)||1) * (parseInt(rd.probC)||1) * (parseInt(rd.gravC)||1);
                         }
-                    }
-                    // Appliquer le recalcul sur les lignes concernées
-                    for (let row of affectedRows) {
-                        if (filteredData[row]) {
-                            recalcRow(filteredData[row]);
-                            // Mettre à jour dans allData
-                            const ref = filteredData[row].ref;
-                            if (ref) {
-                                const idx = allData.findIndex(d => d.ref === ref);
-                                if (idx !== -1) {
-                                    Object.assign(allData[idx], filteredData[row]);
-                                }
-                            }
-                        }
-                    }
-                    // Recharger les données modifiées
-                    applyFilters(); // cela mettra à jour l'affichage
+                    });
+                    applyFilters();
                 }
+            });
+            filteredData = allData; filteredEffective = effectiveCategoriesAll; refreshDisplay();
+        }
+
+        function customRenderer(instance, td, row, col, prop, value, cellProperties) {
+            Handsontable.renderers.TextRenderer.apply(this, arguments);
+            if (col === 0) {
+                td.className = 'vertical-cat';
+                const eff = instance.getSettings().effectiveCategories;
+                td.innerHTML = '<div class="cat-text">' + (eff[row] || '') + '</div>';
             }
-
-        });
-        filteredData = allData;
-        filteredEffective = effectiveCategoriesAll;
-        refreshDisplay();
-    }
-
-    // Renderer personnalisé
-    function customRenderer(instance, td, row, col, prop, value, cellProperties) {
-        Handsontable.renderers.TextRenderer.apply(this, arguments);
-        if (col === 0) {
-            td.className = 'vertical-cat';
-            const effective = instance.getSettings().effectiveCategories;
-            if (effective && effective[row]) {
-                td.innerHTML = '<div class="cat-text">' + effective[row] + '</div>';
-            } else {
-                td.innerHTML = '<div class="cat-text">' + (value || '') + '</div>';
+            if (prop === 'scoreRes' || prop === 'scoreCible') {
+                const v = parseInt(value) || 0;
+                td.classList.remove('risk-faible', 'risk-modere', 'risk-significatif', 'risk-critique');
+                if (v > 35) td.classList.add('risk-critique');
+                else if (v >= 24) td.classList.add('risk-significatif');
+                else if (v >= 13) td.classList.add('risk-modere');
+                else if (v > 0) td.classList.add('risk-faible');
             }
         }
-        if (prop === 'scoreRes' || prop === 'scoreCible') {
-            const v = parseInt(value) || 0;
-            td.classList.remove('risk-faible', 'risk-modere', 'risk-significatif', 'risk-critique');
-            if (v > 35) td.classList.add('risk-critique');
-            else if (v >= 24) td.classList.add('risk-significatif');
-            else if (v >= 13) td.classList.add('risk-modere');
-            else if (v > 0) td.classList.add('risk-faible');
-        }
-    }
 
-    // Chargement des données (uniquement depuis le serveur)
-    fetch('/rssi/risk-editor/data-json')
-        .then(res => {
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            return res.json();
-        })
-        .then(data => {
-            console.log('✅ Données chargées depuis le serveur');
-            init(data);
-        })
-        .catch(err => {
-            console.error('❌ Erreur de chargement des données :', err);
-            alert('Impossible de charger les données depuis le serveur.');
-        });
+        // --- Events Modal ---
+        document.getElementById('addNewCategoryBtn').onclick = () => {
+            const v = document.getElementById('newCategoryInput').value.trim();
+            if(v) { let s = document.getElementById('categorySelect'); s.add(new Option(v,v,true,true)); }
+        };
 
-    // Initialiser le modal après chargement du DOM
-    document.addEventListener('DOMContentLoaded', () => {
-        categoryModal = new bootstrap.Modal(document.getElementById('categoryModal'));
-    });
-</script>
-</body>
-</html>
+        document.getElementById('confirmCategory').onclick = () => {
+            const cat = document.getElementById('categorySelect').value || document.getElementById('newCategoryInput').value.trim();
+            if(!cat) return;
+            allData.push({...defaultRow, categorie: cat, ref: generateRef(cat)});
+            $('#categoryModal').modal('hide');
+            updateAllLogic();
+        };
+
+        fetch('/rssi/risk-editor/data-json').then(r => r.json()).then(init);
+        function resetFilters() { document.getElementById('searchBox').value=''; document.getElementById('filterCat').value=''; document.getElementById('filterRisk').value=''; applyFilters(); }
+    </script>
+</t:layout>
 
 
 <%--<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>

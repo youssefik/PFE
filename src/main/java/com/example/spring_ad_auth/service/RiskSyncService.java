@@ -33,7 +33,7 @@ public class RiskSyncService {
             r.setMenaces(row.get(2));
             r.setOrigine(row.get(3));
             r.setActifsConcernes(row.get(4));
-            r.setProprietaireRisque(row.get(5));
+//            r.setProprietaireRisque(row.get(5));
             r.setScenariosRisque(row.get(6));
             r.setVulnerabilites(row.get(7));
             r.setMesuresExistantes(row.get(8));
@@ -83,7 +83,8 @@ public class RiskSyncService {
             List<String> row = new ArrayList<>();
             row.add(r.getCategorie()); row.add(r.getRef()); row.add(r.getMenaces());
             row.add(r.getOrigine()); row.add(r.getActifsConcernes());
-            row.add(r.getProprietaireRisque()); row.add(r.getScenariosRisque());
+//            row.add(r.getProprietaireRisque());
+            row.add(r.getScenariosRisque());
             row.add(r.getVulnerabilites()); row.add(r.getMesuresExistantes());
             row.add(String.valueOf(r.getBesoinSecuriteInitial()));
             // ... Ajoutez toutes les colonnes jusqu'à r.getCouleurStyle() à l'index 21

@@ -3,6 +3,7 @@ package com.example.spring_ad_auth.service;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import java.io.*;
 import java.util.*;
@@ -13,17 +14,35 @@ import java.util.stream.Collectors;
 @Service
 public class ExcelService {
 
-    private static final String EXCEL_PATH = "D:/Downoalds/spring-ad-auth/spring-ad-auth/DDA.xlsx";
-    private static final String RISK_EXCEL_PATH = "D:/Downoalds/spring-ad-auth/spring-ad-auth/risques_final.xlsx";
+//    private static final String EXCEL_PATH = "D:/Downoalds/spring-ad-auth/spring-ad-auth/DDA.xlsx";
+//    private static final String RISK_EXCEL_PATH = "D:/Downoalds/spring-ad-auth/spring-ad-auth/risques_final.xlsx";
+
+
+    // On injecte les chemins depuis le fichier properties
+    @Value("${app.excel.dda-path}")
+    private String excelPath;
+
+    @Value("${app.excel.risk-path}")
+    private String riskExcelPath;
+
+    @Value("${app.excel.assets-path}")
+    private String assetsPath;
+
+    // Dans ExcelService.java
+    public List<List<String>> readAssetsExcel() throws IOException {
+//        String ASSETS_PATH = "D:/Downoalds/spring-ad-auth/spring-ad-auth/Inventaire_Actifs.xlsx";
+        // Index feuille = 0, début lecture = Ligne 5 (Index 4) pour sauter le double header
+        return readGeneric(assetsPath, 12, 0, 4);
+    }
 
     // Modifié pour lire à partir de la ligne 5 (Index 4)
     public List<List<String>> readAll() throws IOException {
-        return readGenericFromLine(EXCEL_PATH, 8, 1, 4);
+        return readGenericFromLine(excelPath, 8, 1, 4);
     }
 
 
     public List<List<String>> readRisks() throws IOException {
-        File file = new File(RISK_EXCEL_PATH);
+        File file = new File(riskExcelPath);
         if (!file.exists()) {
             try (XSSFWorkbook workbook = new XSSFWorkbook()) {
                 Sheet sheet = workbook.createSheet("Risques");
@@ -33,7 +52,7 @@ public class ExcelService {
                 }
             }
         }
-        return readGeneric(RISK_EXCEL_PATH, 25 , 0,5);
+        return readGeneric(riskExcelPath, 25 , 0,5);
     }
 
     // Dans ExcelService.java
@@ -239,7 +258,7 @@ public class ExcelService {
             }
         }
 
-        try (FileOutputStream fos = new FileOutputStream(RISK_EXCEL_PATH)) {
+        try (FileOutputStream fos = new FileOutputStream(riskExcelPath)) {
             workbook.write(fos);
         }
         workbook.close();
@@ -366,7 +385,7 @@ public class ExcelService {
     // ---------------------------------------------------------------------
     // Dans ExcelService.java
 
-    private List<List<String>> readGeneric(String filePath, int maxCols, int sheetIndex, int startRow) throws IOException {
+    List<List<String>> readGeneric(String filePath, int maxCols, int sheetIndex, int startRow) throws IOException {
         List<List<String>> result = new ArrayList<>();
         try (FileInputStream fis = new FileInputStream(filePath);
              Workbook workbook = new XSSFWorkbook(fis)) {
@@ -428,7 +447,7 @@ public class ExcelService {
 
     // Écrit dans l'Excel à partir de la ligne 5 (Index 4)
     public void saveAll(List<List<String>> data) throws IOException {
-        saveToExcel(EXCEL_PATH, data, 8, 1, 4);
+        saveToExcel(excelPath, data, 8, 1, 4);
     }
 
 
@@ -464,7 +483,7 @@ public class ExcelService {
     public void saveRisks(List<List<String>> data) throws IOException {
         // Pour les Risques : on reste sur la PREMIÈRE feuille (index 0)
         // et on commence à la ligne 0 (comportement d'origine)
-        saveGenericUpdate(RISK_EXCEL_PATH, data, 25, 0, 0);
+        saveGenericUpdate(riskExcelPath, data, 25, 0, 0);
     }
 
 

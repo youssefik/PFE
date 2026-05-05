@@ -40,57 +40,40 @@
 
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Journal d'Audit | ISO 27001</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <style>
-        :root { --iso-red: #D2010D; --iso-dark: #212121; }
-        body { background-color: #f4f4f4; font-family: 'Inter', sans-serif; }
-        .page-header { border-left: 5px solid var(--iso-red); padding-left: 15px; margin-bottom: 30px; }
-        .table { background: white; border-radius: 4px; overflow: hidden; }
-        .table thead { background-color: #eee; color: var(--iso-dark); }
-        .badge-user { background-color: white; color: var(--iso-red); border: 1px solid var(--iso-red); font-weight: 600; }
-        .btn-back { color: var(--iso-dark); text-decoration: none; font-weight: 600; transition: 0.3s; }
-        .btn-back:hover { color: var(--iso-red); }
-    </style>
-</head>
-<body class="container py-5">
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div class="page-header">
-        <h2 class="fw-bold m-0 text-uppercase" style="letter-spacing: 1px;">Journal d'Audit</h2>
-        <small class="text-muted">Traçabilité des actions sur le SMSI</small>
-    </div>
-    <a href="/dashboard" class="btn-back"><i class="bi bi-arrow-left"></i> RETOUR DASHBOARD</a>
-</div>
+<%@ taglib prefix="t" tagdir="/WEB-INF/tags" %>
 
-<div class="card border-0 shadow-sm">
-    <div class="card-body p-0">
-        <table class="table table-hover mb-0">
-            <thead>
-            <tr>
-                <th class="ps-4">Date</th>
-                <th>Utilisateur</th>
-                <th>Action effectuée</th>
-                <th>Entité cible</th>
-                <th class="text-center">ID</th>
-            </tr>
-            </thead>
-            <tbody>
-            <c:forEach var="log" items="${logs}">
-                <tr class="align-middle">
-                    <td class="ps-4 text-muted">${log.dateCreation}</td>
-                    <td><span class="badge badge-user p-2">${log.utilisateur}</span></td>
-                    <td><span class="fw-bold text-dark">${log.action}</span></td>
-                    <td><span class="text-uppercase small fw-semibold">${log.typeEntite}</span></td>
-                    <td class="text-center text-muted"><small>#${log.idEntite}</small></td>
-                </tr>
-            </c:forEach>
-            </tbody>
-        </table>
+<t:layout pageTitle="Journal d'Audit">
+
+    <div class="row mb-3">
+        <div class="col-12">
+            <p class="text-muted"><i class="fas fa-info-circle mr-1"></i> Traçabilité complète des actions effectuées sur le SMSI.</p>
+        </div>
     </div>
-</div>
-</body>
-</html>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="bg-dark text-white">
+                <tr>
+                    <th class="pl-4">Date</th>
+                    <th>Utilisateur</th>
+                    <th>Action effectuée</th>
+                    <th>Entité cible</th>
+                    <th class="text-center">ID</th>
+                </tr>
+                </thead>
+                <tbody>
+                <c:forEach var="log" items="${logs}">
+                    <tr class="align-middle">
+                        <td class="pl-4 text-muted small">${log.dateCreation}</td>
+                        <td><span class="badge border border-danger text-danger p-2"><i class="fas fa-user mr-1"></i> ${log.utilisateur}</span></td>
+                        <td><span class="font-weight-bold">${log.action}</span></td>
+                        <td><span class="text-uppercase small font-weight-bold text-secondary">${log.typeEntite}</span></td>
+                        <td class="text-center text-muted"><small>#${log.idEntite}</small></td>
+                    </tr>
+                </c:forEach>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</t:layout>

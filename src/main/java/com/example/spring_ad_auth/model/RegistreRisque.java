@@ -18,7 +18,7 @@ public class RegistreRisque {
     private String menaces;
     private String origine;
     private String actifsConcernes;
-    private String proprietaireRisque;
+//    private String proprietaireRisque;
     @Column(columnDefinition = "TEXT")
     private String scenariosRisque;
     @Column(columnDefinition = "TEXT")
@@ -100,14 +100,14 @@ public class RegistreRisque {
     public void setActifsConcernes(String actifsConcernes) {
         this.actifsConcernes = actifsConcernes;
     }
-
-    public String getProprietaireRisque() {
-        return proprietaireRisque;
-    }
-
-    public void setProprietaireRisque(String proprietaireRisque) {
-        this.proprietaireRisque = proprietaireRisque;
-    }
+//
+//    public String getProprietaireRisque() {
+//        return proprietaireRisque;
+//    }
+//
+//    public void setProprietaireRisque(String proprietaireRisque) {
+//        this.proprietaireRisque = proprietaireRisque;
+//    }
 
     public String getScenariosRisque() {
         return scenariosRisque;

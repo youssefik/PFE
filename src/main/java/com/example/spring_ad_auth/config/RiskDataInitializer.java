@@ -1,13 +1,5 @@
 package com.example.spring_ad_auth.config;
 
-import com.example.spring_ad_auth.repository.RisqueRepository;
-import com.example.spring_ad_auth.service.RiskTableService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.stereotype.Component;
-
-import java.util.List;
-
 /*@Component
 public class RiskDataInitializer implements CommandLineRunner {
 

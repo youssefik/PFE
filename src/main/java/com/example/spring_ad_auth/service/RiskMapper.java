@@ -20,7 +20,7 @@ public class RiskMapper {
         e.setCategorie(categorie);
         e.setMenaces(menace);
         e.setOrigine(origine);
-        e.setProprietaireRisque(proprio);
+//        e.setProprietaireRisque(proprio);
 
         // Colonnes Standard
         e.setActifsConcernes(safeGet(row, 2));
@@ -89,7 +89,7 @@ public class RiskMapper {
         row.add(entity.getOrigine());        // 1
         row.add(entity.getActifsConcernes());// 2
         row.add(entity.getRef());            // 3
-        row.add(entity.getProprietaireRisque()); // 4
+//        row.add(entity.getProprietaireRisque()); // 4
         row.add(entity.getScenariosRisque());// 5
         row.add(entity.getVulnerabilites()); // 6
         row.add(entity.getMesuresExistantes()); // 7
@@ -131,7 +131,7 @@ public class RiskMapper {
         map.put("origine", e.getOrigine());
         map.put("actifs", e.getActifsConcernes());
         map.put("ref", e.getRef());
-        map.put("proprio", e.getProprietaireRisque());
+//        map.put("proprio", e.getProprietaireRisque());
         map.put("scenario", e.getScenariosRisque());
         map.put("vulner", e.getVulnerabilites());
         map.put("mesures", e.getMesuresExistantes());
@@ -166,7 +166,7 @@ public class RiskMapper {
         e.setOrigine((String) map.get("origine"));
         e.setActifsConcernes((String) map.get("actifs"));
         e.setRef((String) map.get("ref"));
-        e.setProprietaireRisque((String) map.get("proprio"));
+//        e.setProprietaireRisque((String) map.get("proprio"));
         e.setScenariosRisque((String) map.get("scenario"));
         e.setVulnerabilites((String) map.get("vulner"));
         e.setMesuresExistantes((String) map.get("mesures"));

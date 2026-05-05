@@ -708,6 +708,7 @@
 <%--</body>--%>
 <%--</html>--%>
 
+<%--
 
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
@@ -903,6 +904,39 @@
         <!-- RISQUES (Le style "Health" de votre image) -->
         <c:if test="${isRSSI || isAdmin}">
             <div class="col-md-3">
+                <div class="iso-card shadow-sm">
+                    <i class="bi bi-shield-check"></i>
+                    <h5>Safety, Security & Risks</h5>
+                    <div class="mt-2 w-100">
+                        <a href="/rssi/perimetres" class="btn-link-iso">
+                            <i class="bi bi-geo-alt me-2"></i>Périmètres SMSI
+                        </a>
+
+                        <a href="/rssi/actifs" class="btn-link-iso">
+                            <i class="bi bi-box-seam me-2"></i>Inventaire Actifs
+                        </a>
+
+                        <!-- NOUVEAU LIEN : ÉDITEUR MASSIF D'ACTIFS -->
+                        <a href="/rssi/assets-editor" class="btn-link-iso text-muted small">
+                            <i class="bi bi-grid-3x3 me-2"></i>Éditeur Actifs
+                        </a>
+
+                        <hr class="my-2 opacity-25"> <!-- Séparateur visuel -->
+
+                        <a href="/rssi/risques" class="btn-link-iso">
+                            <i class="bi bi-graph-down-arrow me-2"></i>Analyses Risques
+                        </a>
+
+                        <a href="/rssi/risk-editor" class="btn-link-iso text-muted small">
+                            <i class="bi bi-pencil-square me-2"></i>Éditeur Risques (ISO 27005)
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </c:if>
+
+&lt;%&ndash;        <c:if test="${isRSSI || isAdmin}">
+            <div class="col-md-3">
                 <!-- On simule ici la carte active/hover par défaut si vous voulez, sinon le CSS gère le hover -->
                 <div class="iso-card shadow-sm">
                     <i class="bi bi-shield-check"></i>
@@ -916,7 +950,7 @@
                     </div>
                 </div>
             </div>
-        </c:if>
+        </c:if>&ndash;%&gt;
 
         <!-- IT / CONFORMITÉ -->
         <c:if test="${isRSSI || isAdmin || isPilote}">
@@ -1025,4 +1059,217 @@
 </footer>
 
 </body>
-</html>
+</html>--%>
+
+
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib uri="jakarta.tags.core" prefix="c" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
+<%@ taglib prefix="t" tagdir="/WEB-INF/tags" %>
+
+<t:layout pageTitle="Tableau de Bord Corporate">
+
+    <%-- STYLE SPÉCIFIQUE AUX CARTES DU DASHBOARD --%>
+    <style>
+        :root {
+            --iso-red: #D2010D;
+            --iso-dark: #212121;
+        }
+
+        /* Cartes de navigation style "ISO" */
+        .iso-card {
+            background: white;
+            border: none;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            height: 100%;
+            text-align: center;
+            padding: 30px 15px;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .iso-card i.main-icon {
+            font-size: 3rem;
+            color: var(--iso-red);
+            margin-bottom: 15px;
+            transition: color 0.3s ease;
+        }
+
+        .iso-card h5 {
+            font-weight: 700;
+            color: var(--iso-dark);
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+        }
+
+        /* Effet au survol : La carte devient rouge */
+        .iso-card:hover {
+            background-color: var(--iso-red);
+            transform: translateY(-5px);
+            color: white !important;
+        }
+
+        .iso-card:hover i.main-icon,
+        .iso-card:hover h5,
+        .iso-card:hover .btn-link-iso {
+            color: white !important;
+        }
+
+        .btn-link-iso {
+            color: var(--iso-dark);
+            text-decoration: none !important;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: block;
+            margin: 5px 0;
+            transition: color 0.2s;
+        }
+
+        .action-alert {
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            color: var(--iso-dark);
+            transition: all 0.3s ease;
+        }
+
+        .iso-card:hover .action-alert {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white !important;
+        }
+
+        .iso-ref-tag {
+            font-size: 0.65rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #999;
+        }
+
+        .iso-card:hover .iso-ref-tag { color: rgba(255,255,255,0.7); }
+    </style>
+
+    <div class="row">
+
+        <!-- ADMINISTRATION -->
+        <c:if test="${isAdmin}">
+            <div class="col-lg-3 col-md-6">
+                <div class="iso-card shadow-sm">
+                    <i class="bi bi-gear main-icon"></i>
+                    <h5>Administration</h5>
+                    <div class="mt-2 w-100">
+                        <a href="/admin/clauses" class="btn-link-iso">Référentiel Clauses</a>
+                        <a href="/admin/controles" class="btn-link-iso">Référentiel Contrôles</a>
+                        <a href="/admin/audit-log" class="btn-link-iso">Journal d'Audit</a>
+                        <a href="/admin/users" class="btn-link-iso opacity-75">Gestion des utilisateurs</a>
+                    </div>
+                </div>
+            </div>
+        </c:if>
+
+        <!-- RISQUES -->
+        <c:if test="${isRSSI || isAdmin}">
+            <div class="col-lg-3 col-md-6">
+                <div class="iso-card shadow-sm">
+                    <i class="bi bi-shield-check main-icon"></i>
+                    <h5>Sécurité & Risques</h5>
+                    <div class="mt-2 w-100">
+                        <a href="/rssi/perimetres" class="btn-link-iso"><i class="bi bi-geo-alt mr-2"></i>Périmètres</a>
+                        <a href="/rssi/actifs" class="btn-link-iso"><i class="bi bi-box-seam mr-2"></i>Inventaire</a>
+                        <a href="/rssi/assets-editor" class="btn-link-iso opacity-75 small"><i class="bi bi-grid-3x3 mr-2"></i>Éditeur Massif</a>
+                        <hr class="my-2 opacity-25">
+                        <a href="/rssi/risques" class="btn-link-iso"><i class="bi bi-graph-down-arrow mr-2"></i>Analyses</a>
+                        <a href="/rssi/risk-editor" class="btn-link-iso opacity-75 small"><i class="bi bi-pencil-square mr-2"></i>Éditeur ISO 27005</a>
+                    </div>
+                </div>
+            </div>
+        </c:if>
+
+        <!-- IT / CONFORMITÉ -->
+        <c:if test="${isRSSI || isAdmin || isPilote}">
+            <div class="col-lg-3 col-md-6">
+                <div class="iso-card shadow-sm">
+                    <i class="bi bi-cpu main-icon"></i>
+                    <h5>IT & Conformité</h5>
+                    <div class="mt-2 w-100">
+                        <a href="/compliance/soa" class="btn-link-iso">Déclaration (SoA)</a>
+                        <a href="/compliance/editor" class="btn-link-iso">Éditeur Rapide</a>
+                    </div>
+                </div>
+            </div>
+        </c:if>
+
+        <!-- AUDIT -->
+        <c:if test="${isAuditeur || isRSSI || isAdmin}">
+            <div class="col-lg-3 col-md-6">
+                <div class="iso-card shadow-sm">
+                    <i class="bi bi-search main-icon"></i>
+                    <h5>Audit & Amélioration</h5>
+                    <div class="mt-2 w-100">
+                        <a href="/audit/missions" class="btn-link-iso">Missions d'Audit</a>
+                        <a href="/compliance/improvement" class="btn-link-iso">Amélioration Continue</a>
+                        <a href="/audit/actions-correctives" class="btn-link-iso">Actions Correctives</a>
+                    </div>
+                </div>
+            </div>
+        </c:if>
+
+        <!-- SÉCURITÉ OPÉRATIONNELLE -->
+        <c:if test="${isRSSI || isAdmin}">
+            <div class="col-lg-3 col-md-6">
+                <div class="iso-card shadow-sm">
+                    <i class="bi bi-gear-wide-connected main-icon"></i>
+                    <h5>Opérations</h5>
+                    <div class="mt-2 w-100">
+                        <a href="/planification" class="btn-link-iso"><i class="bi bi-calendar-check mr-2"></i>Planification</a>
+                        <a href="/planification/logs" class="btn-link-iso"><i class="bi bi-clipboard-data mr-2"></i>Historique</a>
+                    </div>
+
+                    <div class="next-action-container mt-3 w-100">
+                        <c:choose>
+                            <c:when test="${not empty nextTask}">
+                                <div class="action-alert p-2 text-left">
+                                    <small class="text-uppercase font-weight-bold opacity-75" style="font-size: 0.6rem;">Prochaine action :</small>
+                                    <div class="font-weight-bold small">${nextTask.titre}</div>
+                                    <div class="small opacity-75">
+                                        <fmt:parseDate value="${nextTask.prochaineExecution}" pattern="yyyy-MM-dd'T'HH:mm" var="parsedDate" type="both" />
+                                        <fmt:formatDate value="${parsedDate}" pattern="dd/MM/yyyy HH:mm" />
+                                    </div>
+                                </div>
+                            </c:when>
+                            <c:otherwise>
+                                <small class="text-muted opacity-50">Aucune tâche prévue</small>
+                            </c:otherwise>
+                        </c:choose>
+                    </div>
+                    <div class="mt-auto pt-3">
+                        <small class="iso-ref-tag">ISO 27001 : A.8.13</small>
+                    </div>
+                </div>
+            </div>
+        </c:if>
+    </div>
+
+    <!-- PIED DE PAGE : REPORTING / KPIs -->
+    <c:if test="${isAdmin || isRSSI || isDirection}">
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card border-top border-danger shadow-sm" style="border-top-width: 5px !important;">
+                    <div class="card-body p-4 d-flex justify-content-between align-items-center flex-wrap">
+                        <div>
+                            <h3 class="font-weight-bold mb-1">Insights & News</h3>
+                            <p class="text-muted mb-0">Indicateurs de performance et maturité globale du système.</p>
+                        </div>
+                        <a href="/reporting/dashboard" class="btn btn-danger btn-lg px-4 font-weight-bold shadow-sm">
+                            CONSULTER LES KPIs
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </c:if>
+
+</t:layout>

@@ -1,8 +1,6 @@
 package com.example.spring_ad_auth.config;
 
-import com.example.spring_ad_auth.model.AppRole;
 import com.example.spring_ad_auth.model.Utilisateur;
-import com.example.spring_ad_auth.repository.UtilisateurRepository;
 import com.example.spring_ad_auth.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ldap.core.DirContextAdapter;
@@ -13,9 +11,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.ldap.userdetails.UserDetailsContextMapper;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
 import java.util.Collection;
-import java.util.List;
 
 @Component
 public class AdUserDetailsContextMapper implements UserDetailsContextMapper {

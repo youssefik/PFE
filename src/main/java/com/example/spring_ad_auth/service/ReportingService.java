@@ -2,7 +2,6 @@ package com.example.spring_ad_auth.service;
 
 import com.example.spring_ad_auth.model.*;
 import com.example.spring_ad_auth.repository.*;
-import org.antlr.v4.runtime.tree.pattern.ParseTreePattern;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

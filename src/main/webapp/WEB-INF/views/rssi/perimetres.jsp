@@ -39,6 +39,88 @@
 
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
+<%@ taglib prefix="t" tagdir="/WEB-INF/tags" %>
+
+<t:layout pageTitle="Périmètre du SMSI">
+
+    <%-- Styles spécifiques pour le marquage ISO --%>
+    <style>
+        .page-header-desc { border-left: 5px solid #D2010D; padding-left: 15px; margin-bottom: 30px; }
+    </style>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="page-header-desc">
+                <p class="text-muted mb-0"><strong>Clause 4.3</strong> : Détermination du périmètre et des limites physiques/logiques du Système de Gestion de la Sécurité de l'Information.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORMULAIRE DE CRÉATION -->
+    <div class="card card-outline card-danger shadow-sm mb-4">
+        <div class="card-header">
+            <h3 class="card-title font-weight-bold"><i class="fas fa-plus mr-2"></i> Ajouter un périmètre d'application</h3>
+        </div>
+        <div class="card-body">
+            <form action="/rssi/perimetres/save" method="post" class="row">
+                <div class="col-md-4 form-group">
+                    <label class="font-weight-bold small text-uppercase">Nom du périmètre</label>
+                    <input type="text" name="nom" class="form-control" placeholder="ex: DSI, Site Principal, Infrastructure Cloud..." required>
+                </div>
+                <div class="col-md-6 form-group">
+                    <label class="font-weight-bold small text-uppercase">Description / Contexte</label>
+                    <input type="text" name="description" class="form-control" placeholder="Détaillez les limites physiques et logiques concernées...">
+                </div>
+                <div class="col-md-2 d-flex align-items-end mb-3">
+                    <button type="submit" class="btn btn-danger btn-block font-weight-bold elevation-1">
+                        <i class="fas fa-save mr-1"></i> CRÉER
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- LISTE DES PÉRIMÈTRES -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <table class="table table-hover table-striped table-valign-middle mb-0">
+                <thead class="bg-dark">
+                <tr>
+                    <th class="pl-4">Identifiant / Nom</th>
+                    <th>Description du contexte</th>
+                    <th class="text-right pr-4">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <c:forEach var="p" items="${perimetres}">
+                    <tr>
+                        <td class="pl-4 font-weight-bold text-danger text-uppercase">
+                            <i class="fas fa-map-marker-alt mr-2 text-muted"></i> ${p.nom}
+                        </td>
+                        <td class="text-muted font-italic">${p.description}</td>
+                        <td class="text-right pr-4">
+                                <%-- Ajout possible d'un bouton supprimer/éditer plus tard --%>
+                            <span class="badge badge-light border">Actif</span>
+                        </td>
+                    </tr>
+                </c:forEach>
+                </tbody>
+            </table>
+        </div>
+        <c:if test="${empty perimetres}">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-globe-africa fa-3x text-muted mb-3"></i>
+                <p class="text-muted font-italic">Aucun périmètre défini pour le moment.</p>
+            </div>
+        </c:if>
+    </div>
+
+</t:layout>
+
+
+<%--
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib uri="jakarta.tags.core" prefix="c" %>
 <!DOCTYPE html>
 <html>
 <head>
@@ -97,4 +179,4 @@
     </div>
 </div>
 </body>
-</html>
+</html>--%>

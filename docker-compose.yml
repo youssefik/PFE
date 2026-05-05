@@ -1,0 +1,24 @@
+services:
+  cyberpilot-app:
+    build: .
+    container_name: cyberpilot_smsi
+    ports:
+      - "8080:8080"
+    volumes:
+      # On lie le dossier de ton PC au dossier de l'app Docker
+      - ./app-data:/app/data
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      # ON ECRASE TOUS LES CHEMINS POUR DOCKER (LINUX)
+      - APP_EXCEL_DDA_PATH=/app/data/DDA.xlsx
+      - APP_EXCEL_RISK_PATH=/app/data/risques_final.xlsx
+      - APP_EXCEL_ASSETS_PATH=/app/data/Inventaire_Actifs.xlsx
+      - APP_EXCEL_JOURNAL_PATH=/app/data/Journal_Amelioration.xlsx
+      - AD_URL=ldap://host.docker.internal:389
+      - AD_URL=ldap://192.168.56.100:389
+      - AD_DOMAIN=test.local
+      - AD_ROOT_DN=DC=test,DC=local
+      - SPRING_AI_OLLAMA_BASE_URL=http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: always

@@ -5,16 +5,13 @@ import com.example.spring_ad_auth.repository.*;
 import com.example.spring_ad_auth.service.AuditLogService;
 import com.example.spring_ad_auth.service.ImprovementService;
 import jakarta.transaction.Transactional;
-import org.antlr.v4.runtime.tree.pattern.ParseTreePattern;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
 import java.time.LocalDate;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/audit")

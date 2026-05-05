@@ -1,16 +1,13 @@
 package com.example.spring_ad_auth.config;
 
-import com.example.spring_ad_auth.model.ClauseISO;
-import com.example.spring_ad_auth.model.Perimetre;
 import com.example.spring_ad_auth.repository.*;
+import com.example.spring_ad_auth.service.AssetIntegrationService;
 import com.example.spring_ad_auth.service.ImprovementService;
 import com.example.spring_ad_auth.service.RiskTableService;
 import com.example.spring_ad_auth.service.SoAIntegrationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 @Component
 public class DataInitializer implements CommandLineRunner {
@@ -22,10 +19,14 @@ public class DataInitializer implements CommandLineRunner {
     @Autowired private ImprovementRepository improvementRepo;
     @Autowired private ImprovementService improvementService; // Injecter le service
 
+    @Autowired private AssetIntegrationService assetService;
+    @Autowired private ActifRepository actifRepo;
     @Override
     public void run(String... args) throws Exception {
         // Toujours lancer l'init des clauses 4-10
         syncService.initManagementSystemClauses();
+
+
 
         // Importer l'Annexe A si vide
 /*        if (syncService.isReferentielEmpty()) {
@@ -38,6 +39,10 @@ public class DataInitializer implements CommandLineRunner {
             } catch (Exception e) {
                 System.err.println("❌ Erreur init Journal d'amélioration : " + e.getMessage());
             }
+        }
+
+        if (actifRepo.count() == 0) {
+            assetService.importAssetsFromExcel();
         }
 
     }

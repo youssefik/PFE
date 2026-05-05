@@ -1,14 +1,12 @@
 package com.example.spring_ad_auth.controller;
 
 import com.example.spring_ad_auth.mapper.ImprovementMapper;
-import com.example.spring_ad_auth.model.ActionAmelioration;
 import com.example.spring_ad_auth.repository.ImprovementRepository;
 import com.example.spring_ad_auth.service.ImprovementService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 

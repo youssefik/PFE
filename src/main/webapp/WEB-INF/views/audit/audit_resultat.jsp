@@ -1,5 +1,154 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
+<%@ taglib prefix="t" tagdir="/WEB-INF/tags" %>
+
+<t:layout pageTitle="Rapport d'Audit Final">
+
+    <style>
+        /* Styles spécifiques au rapport d'audit */
+        .report-header-box { border-left: 5px solid #D2010D; background: #fff; padding: 20px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+
+        /* Badges de maturité personnalisés */
+        .badge-mat { padding: 8px 12px; font-size: 0.9rem; border-radius: 4px; width: 100%; display: block; text-align: center; font-weight: bold; }
+        .mat-high { background-color: #28a745; color: white; }
+        .mat-med { background-color: #ffc107; color: #333; }
+        .mat-low { background-color: #dc3545; color: white; }
+
+        .recommendation-box { background-color: #fffef0; border: 1px solid #ffeeba; border-left: 4px solid #ffc107; padding: 10px; border-radius: 4px; font-style: italic; color: #856404; }
+
+        @media print {
+            .no-print, .main-sidebar, .main-header, .main-footer { display: none !important; }
+            .content-wrapper { margin-left: 0 !important; }
+            .card { border: 1px solid #ddd !important; box-shadow: none !important; }
+        }
+    </style>
+
+    <!-- Header de Mission -->
+    <div class="report-header-box d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="font-weight-bold mb-1"><i class="fas fa-file-contract text-danger mr-2"></i> ${audit.titre}</h4>
+            <p class="text-muted mb-0 small">
+                Mission ID: <strong>#${audit.id.toString().substring(0,8)}</strong> |
+                Statut : <span class="badge badge-success px-3">${audit.statut}</span>
+            </p>
+        </div>
+        <div class="no-print">
+            <button onclick="window.print()" class="btn btn-dark">
+                <i class="fas fa-print mr-2"></i> Imprimer le Rapport
+            </button>
+        </div>
+    </div>
+
+    <!-- Structure par Onglets -->
+    <div class="card card-danger card-outline card-tabs shadow-sm">
+        <div class="card-header p-0 pt-1 border-bottom-0">
+            <ul class="nav nav-tabs" id="auditTabs" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" id="clauses-tab" data-toggle="pill" href="#resClauses" role="tab">
+                        <i class="fas fa-list-ol mr-2"></i>Synthèse Clauses (4-10)
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="annexe-tab" data-toggle="pill" href="#resAnnexe" role="tab">
+                        <i class="fas fa-shield-alt mr-2"></i>Maturité Annexe A
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card-body">
+            <div class="tab-content" id="auditTabsContent">
+
+                <!-- ================= ONGLET : RÉSULTAT CLAUSE 4-10 ================= -->
+                <div class="tab-pane fade show active" id="resClauses" role="tabpanel">
+                    <h5 class="mb-4 text-dark font-weight-bold"><i class="fas fa-check-circle text-primary mr-2"></i>Verdict de conformité normative</h5>
+                    <table class="table table-bordered table-hover align-middle">
+                        <thead class="thead-dark">
+                        <tr>
+                            <th style="width: 100px;">Réf.</th>
+                            <th>Chapitre Normatif</th>
+                            <th>Verdict de l'Auditeur</th>
+                            <th>Observations détaillées</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <c:forEach var="c" items="${resultatsClauses}">
+                            <tr>
+                                <td class="font-weight-bold text-center bg-light">${c.clauseIso.code}</td>
+                                <td>${c.clauseIso.titre}</td>
+                                <td>
+                                    <c:choose>
+                                        <c:when test="${c.type eq 'NC Majeur'}"><span class="badge badge-danger px-3 py-2 w-100">NON-CONFORMITÉ MAJEURE</span></c:when>
+                                        <c:when test="${c.type eq 'NC Mineur'}"><span class="badge badge-warning px-3 py-2 w-100">NON-CONFORMITÉ MINEURE</span></c:when>
+                                        <c:when test="${c.type eq 'Conforme'}"><span class="badge badge-success px-3 py-2 w-100">CONFORME</span></c:when>
+                                        <c:otherwise><span class="badge badge-info px-3 py-2 w-100">${c.type}</span></c:otherwise>
+                                    </c:choose>
+                                </td>
+                                <td><p class="mb-0 small text-justify">${c.description}</p></td>
+                            </tr>
+                        </c:forEach>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- ================= ONGLET : RÉSULTAT ANNEXE A ================= -->
+                <div class="tab-pane fade" id="resAnnexe" role="tabpanel">
+                    <h5 class="mb-4 text-dark font-weight-bold"><i class="fas fa-chart-bar text-danger mr-2"></i>Score de Maturité des Mesures Techniques</h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle">
+                            <thead class="thead-light">
+                            <tr>
+                                <th style="width: 80px;">Code</th>
+                                <th>Mesure de Sécurité</th>
+                                <th style="width: 180px;">Maturité (0-5)</th>
+                                <th>Évidence & Constat</th>
+                                <th>Recommandations d'Amélioration</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <c:forEach var="a" items="${resultatsAnnexeA}">
+                                <tr>
+                                    <td class="text-center font-weight-bold bg-light">${a.controle.code}</td>
+                                    <td><strong>${a.controle.titre}</strong></td>
+                                    <td>
+                                        <c:set var="mValue" value="${a.niveauMaturite}" />
+                                        <c:choose>
+                                            <c:when test="${mValue.startsWith('4') || mValue.startsWith('5')}">
+                                                <span class="badge-mat mat-high">${mValue}</span>
+                                            </c:when>
+                                            <c:when test="${mValue.startsWith('0') || mValue.startsWith('1')}">
+                                                <span class="badge-mat mat-low">${mValue}</span>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <span class="badge-mat mat-med">${mValue}</span>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </td>
+                                    <td><small class="text-muted">${a.description}</small></td>
+                                    <td>
+                                        <div class="recommendation-box small">
+                                            <i class="far fa-lightbulb mr-1"></i> ${a.recommandation}
+                                        </div>
+                                    </td>
+                                </tr>
+                            </c:forEach>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <div class="card-footer bg-white border-top text-center text-muted small">
+            Signature Électronique Validée | Rapport généré le : <strong>30/04/2026</strong>
+        </div>
+    </div>
+
+</t:layout>
+
+<%--
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib uri="jakarta.tags.core" prefix="c" %>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -129,4 +278,4 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-</html>
+</html>--%>

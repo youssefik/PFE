@@ -1,18 +1,14 @@
 package com.example.spring_ad_auth.controller;
 
-import com.example.spring_ad_auth.service.RiskSyncService;
 import com.example.spring_ad_auth.service.RiskTableService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
 import org.springframework.http.*;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.*;
 

@@ -1,5 +1,128 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
+<%@ taglib prefix="t" tagdir="/WEB-INF/tags" %>
+
+<t:layout pageTitle="Stratégie de Traitement">
+
+    <style>
+        .risk-summary-box {
+            background-color: #f8f9fa;
+            border-left: 5px solid #D2010D;
+            border-radius: 4px;
+            padding: 20px;
+        }
+        .form-label-pro {
+            font-weight: 700;
+            color: #495057;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            display: block;
+            margin-bottom: 8px;
+        }
+    </style>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+
+            <div class="card card-outline card-danger shadow-lg">
+                <div class="card-header">
+                    <h3 class="card-title font-weight-bold">
+                        <i class="fas fa-shield-alt mr-2 text-danger"></i> Définition du Plan de Traitement
+                    </h3>
+                    <div class="card-tools">
+                        <a href="/rssi/risques" class="btn btn-tool"><i class="fas fa-times"></i></a>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <!-- Rappel du risque Brut -->
+                    <div class="risk-summary-box mb-4 shadow-sm">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <span class="form-label-pro text-muted">Scénario sous évaluation :</span>
+                                <h5 class="font-weight-bold text-dark mb-0">${risque.scenariosRisque}</h5>
+                            </div>
+                            <div class="col-md-4 text-md-right mt-3 mt-md-0">
+                                <span class="badge ${risque.couleurStyle} px-3 py-2 text-lg elevation-1">
+                                    SCORE INITIAL : ${risque.niveauRisqueInitial}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form action="/rssi/risques/traiter/save" method="post">
+                        <input type="hidden" name="risqueId" value="${risque.id}">
+
+                        <div class="row">
+                            <!-- Option de traitement -->
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label-pro">Option Stratégique (ISO 27005)</label>
+                                    <select name="strategie" class="form-control select2 shadow-sm" required style="border-width: 2px;">
+                                        <option value="Reduire">🛡️ RÉDUCTION (Mesures de sécurité)</option>
+                                        <option value="Transferer">🤝 TRANSFERT (Assurance / Outsource)</option>
+                                        <option value="Eviter">🚫 ÉVITEMENT (Suppression de l'activité)</option>
+                                        <option value="Accepter">📝 ACCEPTATION (Dérogation Direction)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Efficacité -->
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label-pro">Efficacité attendue (Estimation %)</label>
+                                    <div class="input-group shadow-sm">
+                                        <input type="number" name="efficaciteAttendue" class="form-control" min="1" max="99" value="50" style="border-width: 2px;">
+                                        <div class="input-group-append">
+                                            <span class="input-group-text bg-white"><strong>% de réduction</strong></span>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted italic">Ce taux réduit mathématiquement le risque résiduel cible.</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Plan d'action détaillé -->
+                        <div class="form-group mt-3">
+                            <label class="form-label-pro">Plan d'Actions & Mesures Correctives</label>
+                            <textarea name="planTraitement" class="form-control shadow-sm" rows="5" style="border-width: 2px;"
+                                      placeholder="Listez les contrôles techniques ou organisationnels à déployer (ex: A.8.12 Sauvegardes redondantes, A.5.15 Chiffrement des données sensibles...)" required></textarea>
+                        </div>
+
+                        <div class="mt-5 border-top pt-4">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <a href="/rssi/risques" class="btn btn-default btn-block">ANNULER</a>
+                                </div>
+                                <div class="col-md-8">
+                                    <button type="submit" class="btn btn-danger btn-block font-weight-bold elevation-2">
+                                        <i class="fas fa-check-circle mr-2"></i> ENREGISTRER LE PLAN DE TRAITEMENT
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Footer pédagogique ISO -->
+            <div class="text-center mt-4 mb-5">
+                <div class="callout callout-info bg-white d-inline-block text-left py-2 px-4 shadow-sm" style="border-left-color: #17a2b8 !important;">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle mr-1 text-info"></i>
+                        Conformité <strong>ISO 27001</strong> : La sélection des mesures doit être documentée dans la déclaration d'applicabilité (SoA).
+                    </small>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</t:layout>
+
+<%--<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib uri="jakarta.tags.core" prefix="c" %>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -99,7 +222,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-</html>
+</html>--%>
 
 <%--
 &lt;%&ndash;

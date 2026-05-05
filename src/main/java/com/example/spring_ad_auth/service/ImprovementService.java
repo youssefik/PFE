@@ -6,6 +6,7 @@ import com.example.spring_ad_auth.model.ActionCorrective;
 import com.example.spring_ad_auth.repository.ImprovementRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -23,13 +24,17 @@ public class ImprovementService {
     @Autowired private ImprovementMapper mapper;
     @Autowired private ExcelService excelService;
 
-    private static final String FILE_PATH = "D:/Downoalds/spring-ad-auth/spring-ad-auth/Journal_Amelioration.xlsx";
+//    private static final String FILE_PATH = "D:/Downoalds/spring-ad-auth/spring-ad-auth/Journal_Amelioration.xlsx";
+
+
+    @Value("${app.excel.journal-path}")
+    private String journalPath;
 
 
     @Transactional
     public void initJournalFromExcel() throws IOException {
         // Lecture de 12 colonnes, Sheet 1, à partir de l'index 7 (ligne 8 Excel)
-        List<List<String>> data = excelService.readGenericFromLine(FILE_PATH, 12, 1, 7);
+        List<List<String>> data = excelService.readGenericFromLine(journalPath, 12, 1, 7);
 
         List<ActionAmelioration> entities = new ArrayList<>();
         ActionAmelioration currentAction = null;
@@ -107,7 +112,7 @@ public class ImprovementService {
         repo.deleteAll();
         repo.saveAll(dbList);
         // Sync vers Excel : Sheet 1, à partir de la ligne 8 (index 7)
-        excelService.saveToExcel(FILE_PATH, excelGrid, 12, 1, 7);
+        excelService.saveToExcel(journalPath, excelGrid, 12, 1, 7);
     }
 
 

@@ -2,6 +2,267 @@
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
+<%@ taglib prefix="t" tagdir="/WEB-INF/tags" %>
+
+<t:layout pageTitle="Audit : ${audit.titre}">
+
+    <style>
+        .audit-row { transition: 0.3s; background: white; border-bottom: 1px solid #eee; }
+        .audit-row.is-done { background-color: #f8fff9 !important; }
+        .next-up { border: 2px solid #D2010D !important; background-color: #fff5f5 !important; animation: pulse 1s 3; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+        .code-tag { font-weight: 700; color: #D2010D; }
+        .ai-loader { display: none; }
+        .modal-header { background: #343a40; color: white; }
+        .btn-save-nc { background-color: #D2010D; color: white; font-weight: 800; border: none; text-transform: uppercase; border-radius: 4px; padding: 10px; }
+
+        /* Ajustements Bootstrap 4 pour accordéons */
+        .card-header .btn-link { color: #333; text-decoration: none; width: 100%; text-align: left; }
+    </style>
+
+    <!-- CALCULS DE PROGRESSION -->
+    <c:set var="totalRequirements" value="${fn:length(subClausesList) + fn:length(soaApplicables)}" />
+    <c:set var="auditedClauseCount" value="0" />
+    <c:set var="auditedControleCount" value="0" />
+    <c:forEach var="constat" items="${audit.constats}">
+        <c:if test="${constat.clauseIso != null}"><c:set var="auditedClauseCount" value="${auditedClauseCount + 1}" /></c:if>
+        <c:if test="${constat.controle != null}"><c:set var="auditedControleCount" value="${auditedControleCount + 1}" /></c:if>
+    </c:forEach>
+    <c:set var="totalDone" value="${auditedClauseCount + auditedControleCount}" />
+    <c:set var="progGlobalPct" value="${totalRequirements > 0 ? (totalDone * 100 / totalRequirements) : 0}" />
+
+    <div class="row mb-4 no-print">
+        <div class="col-md-8">
+            <div class="info-box shadow-sm">
+                <span class="info-box-icon bg-danger"><i class="fas fa-tasks"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text">PROGRESSION DE L'AUDIT</span>
+                    <span class="info-box-number"><fmt:formatNumber value="${progGlobalPct}" maxFractionDigits="0"/>% réalisé</span>
+                    <div class="progress"><div class="progress-bar bg-danger" style="width: ${progGlobalPct}%"></div></div>
+                    <span class="progress-description text-muted">${totalDone} sur ${totalRequirements} points évalués</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 text-right">
+            <a href="/audit/resultat/${audit.id}" class="btn btn-primary shadow-sm mb-2"><i class="fas fa-file-alt mr-2"></i> RÉSULTATS FINAUX</a><br>
+            <a href="/audit/missions" class="btn btn-outline-dark btn-sm"><i class="fas fa-door-open mr-1"></i> Quitter la mission</a>
+        </div>
+    </div>
+
+    <!-- ONGLETS -->
+    <div class="card card-danger card-outline card-tabs shadow-sm">
+        <div class="card-header p-0 pt-1 border-bottom-0">
+            <ul class="nav nav-tabs" id="auditTabs" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" data-toggle="pill" href="#tabClauses" role="tab"><i class="fas fa-list-check mr-2"></i> Exigences SMSI (4-10)</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-toggle="pill" href="#tabAnnexe" role="tab"><i class="fas fa-shield-alt mr-2"></i> Mesures de l'Annexe A</a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card-body">
+            <div class="tab-content">
+
+                <!-- ONGLET 1 : CLAUSES -->
+                <div class="tab-pane fade show active" id="tabClauses" role="tabpanel">
+                    <div id="accordionAudit">
+                        <c:forEach var="parent" items="${parentChapters}" varStatus="pStatus">
+                            <!-- Calcul Conformité Chapitre -->
+                            <c:set var="subCount" value="0" /><c:set var="confCount" value="0" />
+                            <c:forEach var="sub" items="${subClausesList}"><c:if test="${sub.parent.id == parent.id}"><c:set var="subCount" value="${subCount + 1}" />
+                                <c:forEach var="c" items="${audit.constats}"><c:if test="${c.clauseIso.id == sub.id && c.type == 'Conforme'}"><c:set var="confCount" value="${confCount + 1}" /></c:if></c:forEach>
+                            </c:if></c:forEach>
+                            <c:set var="cPct" value="${subCount > 0 ? (confCount * 100 / subCount) : 0}" />
+
+                            <div class="card card-light mb-2 shadow-none border">
+                                <div class="card-header">
+                                    <h4 class="card-title w-100">
+                                        <a class="d-flex justify-content-between align-items-center" data-toggle="collapse" href="#chapter${pStatus.index}">
+                                            <span><strong>${parent.code}</strong> ${parent.titre}</span>
+                                            <div style="width: 120px;">
+                                                <div class="progress progress-xxs mb-0"><div class="progress-bar bg-success" style="width: ${cPct}%"></div></div>
+                                                <small class="text-muted font-weight-bold" style="font-size: 10px;">${cPct}% OK</small>
+                                            </div>
+                                        </a>
+                                    </h4>
+                                </div>
+                                <div id="chapter${pStatus.index}" class="collapse" data-parent="#accordionAudit">
+                                    <div class="card-body p-0">
+                                        <table class="table table-hover table-valign-middle mb-0">
+                                            <tbody>
+                                            <c:forEach var="sub" items="${subClausesList}">
+                                                <c:if test="${sub.parent.id == parent.id}">
+                                                    <c:set var="curConstat" value="${null}" />
+                                                    <c:forEach var="constat" items="${audit.constats}"><c:if test="${constat.clauseIso.id == sub.id}"><c:set var="curConstat" value="${constat}" /></c:if></c:forEach>
+
+                                                    <tr id="row_sc_${sub.id}" class="audit-row ${curConstat != null ? 'is-done' : 'not-done'}">
+                                                        <td class="pl-4 font-weight-bold code-tag" style="width:80px;">${sub.code}</td>
+                                                        <td><strong>${sub.titre}</strong><br><small class="text-muted italic">${sub.exigences}</small></td>
+                                                        <td class="text-right pr-4" style="width:250px;">
+                                                            <c:choose>
+                                                                <c:when test="${curConstat == null}">
+                                                                    <button class="btn btn-dark btn-sm px-4 elevation-1" data-toggle="modal" data-target="#modalSc_${sub.id.toString().replace('-','')}">AUDITER</button>
+                                                                </c:when>
+                                                                <c:otherwise>
+                                                                    <div class="d-flex align-items-center justify-content-end">
+                                                                        <span class="badge ${curConstat.type == 'Conforme' ? 'badge-success' : 'badge-warning'} px-3 py-2 mr-3 elevation-1">
+                                                                                ${curConstat.type}
+                                                                        </span>
+                                                                        <form action="/audit/constat/supprimer" method="post" class="d-inline" onsubmit="return confirm('Supprimer ce constat ?')">
+                                                                            <input type="hidden" name="auditId" value="${audit.id}"><input type="hidden" name="clauseId" value="${sub.id}">
+                                                                            <button type="submit" class="btn btn-link text-danger p-0 ml-1"><i class="fas fa-trash"></i></button>
+                                                                        </form>
+                                                                    </div>
+                                                                </c:otherwise>
+                                                            </c:choose>
+                                                        </td>
+                                                    </tr>
+
+                                                    <!-- MODAL CLAUSE (AdminLTE 3 Style) -->
+                                                    <div class="modal fade" id="modalSc_${sub.id.toString().replace('-','')}" tabindex="-1" role="dialog" aria-hidden="true">
+                                                        <div class="modal-dialog modal-dialog-centered">
+                                                            <div class="modal-content shadow-lg border-0">
+                                                                <form action="/audit/constat/save" method="post">
+                                                                    <input type="hidden" name="auditId" value="${audit.id}"><input type="hidden" name="clauseId" value="${sub.id}"><input type="hidden" name="source" value="CLAUSE">
+                                                                    <div class="modal-header"><h5 class="modal-title font-weight-bold">Point : ${sub.code}</h5><button type="button" class="close text-white" data-dismiss="modal">&times;</button></div>
+                                                                    <div class="modal-body">
+                                                                        <div class="form-group"><label class="font-weight-bold small text-uppercase">Statut de conformité</label>
+                                                                            <select name="type" class="form-control" required><option value="" disabled selected>Choisir un verdict...</option>
+                                                                                <option value="Conforme">✅ Conforme</option><option value="Observation">👁️ Observation</option><option value="NC Mineur">⚠️ NC Mineur</option><option value="NC Majeur">🚨 NC Majeur</option><option value="Opportunité d'amélioration">📈 Opportunité</option></select></div>
+                                                                        <div class="form-group"><label class="font-weight-bold small text-uppercase">Preuves récoltées</label>
+                                                                            <textarea id="desc_sc_${sub.id}" name="description" class="form-control" rows="3" required placeholder="Observations..."></textarea></div>
+                                                                        <div class="form-group"><label class="d-flex justify-content-between font-weight-bold small text-uppercase">Recommandation <button type="button" class="btn btn-link btn-xs p-0 text-primary" onclick="getAiSuggestion('sc_${sub.id}', '${sub.code}')"><i class="fas fa-robot mr-1"></i> Aide IA</button></label>
+                                                                            <textarea id="rec_sc_${sub.id}" name="recommandation" class="form-control bg-light" rows="3"></textarea><div id="loader_sc_${sub.id}" class="spinner-border spinner-border-sm text-primary ai-loader mt-1"></div></div>
+                                                                    </div>
+                                                                    <div class="modal-footer"><button type="submit" class="btn btn-save-nc btn-block">Valider l'exigence</button></div>
+                                                                </form>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </c:if>
+                                            </c:forEach>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </c:forEach>
+                    </div>
+                </div>
+
+                <!-- ONGLET 2 : ANNEXE A -->
+                <div class="tab-pane fade" id="tabAnnexe" role="tabpanel">
+                    <div class="card card-dark">
+                        <div class="card-header"><h3 class="card-title"><i class="fas fa-shield-alt mr-2"></i>Contrôles techniques (Applicables au SoA)</h3></div>
+                        <div class="card-body p-0">
+                            <table class="table table-striped table-hover align-middle mb-0">
+                                <thead><tr><th class="pl-4">Code</th><th>Mesure Technique de l'Annexe A</th><th class="text-center">Action / État</th></tr></thead>
+                                <tbody>
+                                <c:forEach var="soa" items="${soaApplicables}">
+                                    <c:set var="curConstat" value="${null}" />
+                                    <c:forEach var="constat" items="${audit.constats}"><c:if test="${constat.controle.id == soa.controle.id}"><c:set var="curConstat" value="${constat}" /></c:if></c:forEach>
+                                    <tr id="ann_row_${soa.controle.id}" class="audit-row ${curConstat != null ? 'is-done' : 'not-done'}">
+                                        <td class="pl-4 font-weight-bold code-tag">${soa.controle.code}</td>
+                                        <td><strong>${soa.controle.titre}</strong><br><small class="text-muted">Justification: ${soa.justification}</small></td>
+                                        <td class="text-center" style="width:250px;">
+                                            <c:choose>
+                                                <c:when test="${curConstat == null}"><button class="btn btn-danger btn-sm px-4 elevation-1 font-weight-bold" data-toggle="modal" data-target="#modalA_${soa.id.toString().replace('-','')}">AUDITER</button></c:when>
+                                                <c:otherwise>
+                                                    <div class="d-flex align-items-center justify-content-center">
+                                                        <span class="badge badge-light border px-3 py-2 mr-3 elevation-1 font-weight-bold">${curConstat.niveauMaturite}</span>
+                                                        <form action="/audit/constat/supprimer" method="post" class="d-inline" onsubmit="return confirm('Réinitialiser cet audit ?')">
+                                                            <input type="hidden" name="auditId" value="${audit.id}"><input type="hidden" name="controleId" value="${soa.controle.id}">
+                                                            <button type="submit" class="btn btn-link text-danger p-0"><i class="fas fa-trash"></i></button>
+                                                        </form>
+                                                    </div>
+                                                </c:otherwise>
+                                            </c:choose>
+                                        </td>
+                                    </tr>
+
+                                    <!-- MODAL ANNEXE A (Similaire Clause) -->
+                                    <div class="modal fade" id="modalA_${soa.id.toString().replace('-','')}" tabindex="-1" role="dialog" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content shadow-lg border-0">
+                                                <form action="/audit/constat/save" method="post">
+                                                    <input type="hidden" name="auditId" value="${audit.id}"><input type="hidden" name="controleId" value="${soa.controle.id}"><input type="hidden" name="source" value="ANNEXE_A">
+                                                    <div class="modal-header bg-danger text-white"><h5 class="modal-title font-weight-bold">Mesure : ${soa.controle.code}</h5><button type="button" class="close text-white" data-dismiss="modal">&times;</button></div>
+                                                    <div class="modal-body p-4">
+                                                        <div class="form-group"><label class="small font-weight-bold">Niveau de maturité (0-5)</label>
+                                                            <select name="niveauMaturite" class="form-control" required><option value="" disabled selected>Niveau...</option><option>0 - Inexistant</option><option>1 - Initialisé</option><option>2 - Reproductible</option><option>3 - Défini</option><option>4 - Géré</option><option>5 - Optimisé</option><option>Non applicable</option></select></div>
+                                                        <div class="form-group"><label class="small font-weight-bold">Observations / Évidence</label><textarea id="desc_a_${soa.id}" name="description" class="form-control" rows="3" required placeholder="Preuves..."></textarea></div>
+                                                        <div class="form-group"><label class="d-flex justify-content-between small font-weight-bold">Recommandation <button type="button" class="btn btn-link btn-xs p-0 text-primary" onclick="getAiSuggestion('a_${soa.id}', '${soa.controle.code}')"><i class="fas fa-robot mr-1"></i> Aide IA</button></label><textarea id="rec_a_${soa.id}" name="recommandation" class="form-control bg-light" rows="3"></textarea><div id="loader_a_${soa.id}" class="spinner-border spinner-border-sm text-primary ai-loader mt-1"></div></div>
+                                                    </div>
+                                                    <div class="modal-footer"><button type="submit" class="btn btn-dark btn-block shadow font-weight-bold">VALIDER L'ÉVALUATION</button></div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </c:forEach>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT DE LOGIQUE ET IA -->
+    <script>
+        async function getAiSuggestion(fieldId, code) {
+            const descField = document.getElementById('desc_' + fieldId);
+            const recField = document.getElementById('rec_' + fieldId);
+            const loader = document.getElementById('loader_' + fieldId);
+            if (!descField.value) { alert("Détaillez d'abord votre observation pour l'analyse."); return; }
+            loader.style.display = 'inline-block';
+            try {
+                const res = await fetch('/api/ai/audit-assist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: descField.value, controlCode: code })
+                });
+                recField.value = await res.text();
+            } catch (e) {
+                alert("Ollama ou API déconnecté. Vérifiez l'IA.");
+            } finally { loader.style.display = 'none'; }
+        }
+
+        // Persistance des onglets et autoscroll
+        document.addEventListener("DOMContentLoaded", function() {
+            // Recharger l'onglet actif après une action de sauvegarde
+            const activeTab = localStorage.getItem('lastAuditTab');
+            if (activeTab) {
+                $('.nav-tabs a[href="' + activeTab + '"]').tab('show');
+            }
+            $('.nav-tabs a').on('shown.bs.tab', function (e) {
+                localStorage.setItem('lastAuditTab', $(e.target).attr('href'));
+            });
+
+            // Focus sur le prochain élément à traiter si on vient d'une sauvegarde
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('lastProcessedId')) {
+                const nextItem = document.querySelector('.tab-pane.active .not-done');
+                if (nextItem) {
+                    const parentCollapse = nextItem.closest('.collapse');
+                    if (parentCollapse) $(parentCollapse).collapse('show');
+                    nextItem.classList.add('next-up');
+                    nextItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        });
+    </script>
+
+</t:layout>
+
+<%--<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib uri="jakarta.tags.core" prefix="c" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -71,7 +332,7 @@
         <h2 class="fw-bold m-0 uppercase">${audit.titre}</h2>
         <c:set var="totalRequirements" value="${fn:length(subClausesList) + fn:length(soaApplicables)}" />
 
-        <%-- Compter les constats réels (clauses et contrôles) --%>
+        &lt;%&ndash; Compter les constats réels (clauses et contrôles) &ndash;%&gt;
         <c:set var="auditedClauseCount" value="0" />
         <c:set var="auditedControleCount" value="0" />
         <c:forEach var="constat" items="${audit.constats}">
@@ -153,7 +414,7 @@
                                                         </c:when>
                                                         <c:otherwise>
                                                             <div class="d-flex align-items-center justify-content-end">
-<%--                                                                <span class="badge ${curConstat.type == 'Conforme' ? 'bg-success' : 'bg-warning text-dark'} p-2 me-3 rounded-pill px-3 shadow-sm">${curConstat.type}</span>--%>
+&lt;%&ndash;                                                                <span class="badge ${curConstat.type == 'Conforme' ? 'bg-success' : 'bg-warning text-dark'} p-2 me-3 rounded-pill px-3 shadow-sm">${curConstat.type}</span>&ndash;%&gt;
                                                                 <span class="badge ${curConstat.type == 'Conforme' ? 'bg-success' : (curConstat.type == 'Observation' ? 'bg-info' : (curConstat.type == 'NC Mineur' ? 'bg-warning' : 'bg-danger'))} me-3 px-3 py-2 rounded-pill shadow-sm">
                                                                     <i class="bi ${curConstat.type == 'Conforme' ? 'bi-check-all' : (curConstat.type == 'Observation' ? 'bi-eye' : (curConstat.type == 'NC Mineur' ? 'bi-exclamation-triangle' : 'bi-x-octagon'))}"></i>
                                                                     ${curConstat.type}
@@ -219,7 +480,7 @@
                     </thead>
                     <tbody>
                     <c:forEach var="soa" items="${soaApplicables}">
-                        <%-- Recherche d'un constat existant pour ce contrôle --%>
+                        &lt;%&ndash; Recherche d'un constat existant pour ce contrôle &ndash;%&gt;
                         <c:set var="curConstat" value="${null}" />
                         <c:forEach var="constat" items="${audit.constats}">
                             <c:if test="${constat.controle.id == soa.controle.id}">
@@ -282,15 +543,15 @@
                                         </div>
                                         <div class="modal-body p-4">
                                             <!-- Statut de conformité -->
-<%--                                            <label class="form-label">Statut de conformité</label>--%>
-<%--                                            <select name="type" class="form-select border-2 mb-4" required>--%>
-<%--                                                <option value="" disabled selected>Verdict...</option>--%>
-<%--                                                <option value="Conforme">✅ Conforme</option>--%>
-<%--                                                <option value="Observation">👁️ Observation</option>--%>
-<%--                                                <option value="NC Mineur">⚠️ NC Mineur</option>--%>
-<%--                                                <option value="NC Majeur">🚨 NC Majeur</option>--%>
-<%--                                                <option value="Opportunité d'amélioration">📈 Opportunité d'amélioration</option>--%>
-<%--                                            </select>--%>
+&lt;%&ndash;                                            <label class="form-label">Statut de conformité</label>&ndash;%&gt;
+&lt;%&ndash;                                            <select name="type" class="form-select border-2 mb-4" required>&ndash;%&gt;
+&lt;%&ndash;                                                <option value="" disabled selected>Verdict...</option>&ndash;%&gt;
+&lt;%&ndash;                                                <option value="Conforme">✅ Conforme</option>&ndash;%&gt;
+&lt;%&ndash;                                                <option value="Observation">👁️ Observation</option>&ndash;%&gt;
+&lt;%&ndash;                                                <option value="NC Mineur">⚠️ NC Mineur</option>&ndash;%&gt;
+&lt;%&ndash;                                                <option value="NC Majeur">🚨 NC Majeur</option>&ndash;%&gt;
+&lt;%&ndash;                                                <option value="Opportunité d'amélioration">📈 Opportunité d'amélioration</option>&ndash;%&gt;
+&lt;%&ndash;                                            </select>&ndash;%&gt;
                                             <!-- Niveau de maturité -->
                                             <label class="form-label">Niveau de maturité (0-5)</label>
                                             <select name="niveauMaturite" class="form-select border-2 mb-4" required>
@@ -368,7 +629,7 @@
     }
 </script>
 </body>
-</html>
+</html>--%>
 
 <%--<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>

@@ -4,15 +4,12 @@ import com.example.spring_ad_auth.model.*;
 import com.example.spring_ad_auth.repository.*;
 import com.example.spring_ad_auth.service.AuditLogService;
 import com.example.spring_ad_auth.service.RiskTableService;
-import org.antlr.v4.runtime.misc.LogManager;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
-import java.time.LocalDate;
 import java.util.UUID;
 
 @Controller
@@ -55,39 +52,80 @@ public class GestionRisqueController {
 
     @PostMapping("/actifs/save")
     public String saveActif(
+            @RequestParam("activite") String activite,
+            @RequestParam("processus") String processus,
             @RequestParam("nom") String nom,
-            @RequestParam("type") String type,
-            @RequestParam("proprietaire") String proprietaire,
-            @RequestParam("confidentialite") int confidentialite,
-            @RequestParam("integrite") int integrite,
-            @RequestParam("disponibilite") int disponibilite,
-            @RequestParam("perimetreId") UUID perimetreId) { // UUID récupéré proprement
+            @RequestParam("confidentialite") int c,
+            @RequestParam("integrite") int i,
+            @RequestParam("disponibilite") int d,
+            @RequestParam("logiciel") String logiciel,
+            @RequestParam("materiel") String materiel,
+            @RequestParam("personnel") String personnel,
+            @RequestParam("local") String local,
+            @RequestParam("reseau") String reseau,
+            @RequestParam("impact") String impact,
+            @RequestParam("perimetreId") UUID perimetreId) {
 
         try {
             Actif actif = new Actif();
+            actif.setActivite(activite);
+            actif.setProcessus(processus);
             actif.setNom(nom);
-            actif.setType(type);
-            actif.setProprietaire(proprietaire);
-            actif.setConfidentialite(confidentialite);
-            actif.setIntegrite(integrite);
-            actif.setDisponibilite(disponibilite);
+            actif.setConfidentialite(c);
+            actif.setIntegrite(i);
+            actif.setDisponibilite(d);
+            actif.setLogicielSupport(logiciel);
+            actif.setMaterielSupport(materiel);
+            actif.setPersonnelSupport(personnel);
+            actif.setLocalSupport(local);
+            actif.setReseauSupport(reseau);
+            actif.setEvenementRedoute(impact);
 
-            // Liaison avec le périmètre
-            Perimetre p = perimetreRepo.findById(perimetreId).orElse(null);
-            if (p == null) return "redirect:/rssi/actifs?error=perimetre_not_found";
+            Perimetre p = perimetreRepo.findById(perimetreId).orElseThrow();
             actif.setPerimetre(p);
 
-            // Sauvegarde
-            Actif saved = actifRepo.save(actif);
-
-            // Audit Log
-            auditLogService.log("Actif", saved.getId(), "INVENTAIRE_ACTIF");
-
+            actifRepo.save(actif);
             return "redirect:/rssi/actifs?success";
         } catch (Exception e) {
             return "redirect:/rssi/actifs?error=" + e.getMessage();
         }
     }
+
+//    @PostMapping("/actifs/save")
+//    public String saveActif(
+//            @RequestParam("nom") String nom,
+//            @RequestParam("type") String type,
+//            @RequestParam("proprietaire") String proprietaire,
+//            @RequestParam("confidentialite") int confidentialite,
+//            @RequestParam("integrite") int integrite,
+//            @RequestParam("disponibilite") int disponibilite,
+//            @RequestParam("perimetreId") UUID perimetreId) { // UUID récupéré proprement
+//
+//        try {
+//            Actif actif = new Actif();
+//            actif.setNom(nom);
+//            actif.setType(type);
+//            actif.setProprietaire(proprietaire);
+//            actif.setConfidentialite(confidentialite);
+//            actif.setIntegrite(integrite);
+//            actif.setDisponibilite(disponibilite);
+//
+//            // Liaison avec le périmètre
+//            Perimetre p = perimetreRepo.findById(perimetreId).orElse(null);
+//            if (p == null) return "redirect:/rssi/actifs?error=perimetre_not_found";
+//            actif.setPerimetre(p);
+//
+//            // Sauvegarde
+//            Actif saved = actifRepo.save(actif);
+//
+//            // Audit Log
+//            auditLogService.log("Actif", saved.getId(), "INVENTAIRE_ACTIF");
+//
+//            return "redirect:/rssi/actifs?success";
+//        } catch (Exception e) {
+//            return "redirect:/rssi/actifs?error=" + e.getMessage();
+//        }
+//    }
 
     // --- GESTION DES RISQUES ---
     @GetMapping("/risques")
@@ -118,7 +156,6 @@ public class GestionRisqueController {
 
         // 2. Informations générales (Contexte ISO/EBIOS)
         risque.setActifsConcernes(actif.getNom());
-        risque.setProprietaireRisque(actif.getProprietaire());
         risque.setMenaces(menace);
         risque.setVulnerabilites(vulnerabilite);
         risque.setOrigine(origineMenace);

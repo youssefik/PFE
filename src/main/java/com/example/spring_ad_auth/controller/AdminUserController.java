@@ -1,7 +1,6 @@
 package com.example.spring_ad_auth.controller;
 
 import com.example.spring_ad_auth.model.AppRole;
-import com.example.spring_ad_auth.model.Utilisateur;
 import com.example.spring_ad_auth.repository.UtilisateurRepository;
 import com.example.spring_ad_auth.service.LdapSearchService;
 import com.example.spring_ad_auth.service.UserService;

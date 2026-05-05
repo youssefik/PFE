@@ -1,5 +1,261 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
+<%@ taglib prefix="t" tagdir="/WEB-INF/tags" %>
+
+<t:layout pageTitle="Actions Correctives & Amélioration">
+
+    <div class="nc-page"> <%-- Wrapper pour isoler le CSS --%>
+        <style>
+            .nc-page .section-header { border-left: 6px solid #d2010d; padding-left: 1rem; margin-bottom: 2rem; }
+            .nc-page .nc-card { border: none; border-radius: 8px; transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+
+            /* Isolation ciblée des onglets de contenu */
+            .nc-page .nav-pills .nav-link {
+                color: #495057; font-weight: 600; background-color: #fff; margin-right: 10px; border: 1px solid #dee2e6;
+            }
+            .nc-page .nav-pills .nav-link.active {
+                background-color: #d2010d !important; color: white !important;
+            }
+        </style>
+
+        <div class="section-header mt-2">
+            <p class="text-muted">Gestion du plan d'action correctives suite aux audits (Clause 10.2).</p>
+        </div>
+
+        <ul class="nav nav-pills mb-4" id="actionTabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" data-toggle="pill" href="#tabClauses">
+                    <i class="fas fa-file-alt mr-2"></i> Exigences Clauses
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-toggle="pill" href="#tabAnnexe">
+                    <i class="fas fa-shield-alt mr-2"></i> Mesures Annexe A
+                </a>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="actionTabsContent">
+            <%-- Contenu de vos onglets --%>
+            <div class="tab-pane fade show active" id="tabClauses" role="tabpanel">
+                 <%-- Tableaux ici... --%>
+                 <div class="row">
+                    <c:forEach var="nc" items="${ncsClauses}">
+                        <c:set var="currentNC" value="${nc}" scope="request" />
+                        <c:set var="ncColor" value="primary" scope="request" />
+                        <c:set var="targetPoint" value="${nc.constat.clauseIso.code}" scope="request" />
+                        <div class="col-md-6 mb-3">
+                            <%@ include file="includes/nc_card_template.jsp" %>
+                        </div>
+                    </c:forEach>
+                 </div>
+            </div>
+            <%-- Reste du contenu identique... --%>
+        </div>
+    </div>
+
+    <%-- Le script IA --%>
+    <script>
+                function askOllama(btn) {
+            const id = btn.getAttribute('data-id');
+            const description = btn.getAttribute('data-desc');
+            const code = btn.getAttribute('data-code');
+            const textarea = document.getElementById('cause_' + id);
+
+            textarea.value = "⚡ Analyse par l'IA en cours...";
+            textarea.disabled = true;
+            btn.disabled = true;
+
+            fetch('/api/ai/suggest-nc', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ desc: description, code: code })
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Erreur serveur ' + response.status);
+                return response.text();
+            })
+            .then(data => {
+                textarea.value = data;
+                textarea.disabled = false;
+                btn.disabled = false;
+            })
+            .catch(error => {
+                console.error('Erreur Ollama:', error);
+                textarea.value = "❌ Erreur IA. Détails : " + error.message;
+                textarea.disabled = false;
+                btn.disabled = false;
+            });
+        }
+
+    </script>
+</t:layout>
+
+<%--<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib uri="jakarta.tags.core" prefix="c" %>
+<%@ taglib prefix="t" tagdir="/WEB-INF/tags" %>
+
+<t:layout pageTitle="Actions Correctives & Amélioration">
+
+    &lt;%&ndash; Styles spécifiques pour le métier des Non-Conformités &ndash;%&gt;
+    <style>
+        .section-header { border-left: 6px solid #d2010d; padding-left: 1rem; margin-bottom: 2rem; }
+        .nc-card { border: none; border-radius: 8px; transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .nav-pills .nav-link { color: #495057; font-weight: 600; background-color: #fff; margin-right: 10px; border: 1px solid #dee2e6; }
+        .nav-pills .nav-link.active { background-color: #d2010d !important; color: white !important; }
+        .ai-assist-box { background-color: #f1f5f9; border-radius: 12px; padding: 15px; border: 1px dashed #cbd5e1; }
+    </style>
+
+    <div class="section-header">
+        <h2 class="font-weight-bold">Suivi des Non-Conformités (Clause 10.2)</h2>
+        <p class="text-muted">Gestion du plan d'action correctives suite aux audits et contrôles.</p>
+    </div>
+
+    <!-- Navigation par Onglets (BS4 style) -->
+    <ul class="nav nav-pills mb-4" id="actionTabs" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" id="tab-clauses-link" data-toggle="pill" href="#tabClauses" role="tab">
+                <i class="fas fa-file-alt mr-2"></i> Exigences Clauses (4-10)
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="tab-annexe-link" data-toggle="pill" href="#tabAnnexe" role="tab">
+                <i class="fas fa-shield-alt mr-2"></i> Mesures Annexe A
+            </a>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="actionTabsContent">
+
+        <!-- ================= ONGLET CLAUSES 4-10 ================= -->
+        <div class="tab-pane fade show active" id="tabClauses" role="tabpanel">
+
+            <!-- Table des constats en attente -->
+            <div class="card card-outline card-secondary shadow-sm">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-clock mr-2"></i>Constats Clauses en attente d'ouverture</h3>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover table-valign-middle mb-0">
+                        <thead class="bg-light">
+                            <tr><th class="pl-4">Verdict</th><th>Exigence</th><th>Observation</th><th class="text-center">Action</th></tr>
+                        </thead>
+                        <tbody>
+                        <c:forEach var="ct" items="${constatsClausesPending}">
+                            <tr>
+                                <td class="pl-4">
+                                    <span class="badge ${ct.type.contains('Majeur') ? 'badge-danger' : 'badge-warning'}">${ct.type}</span>
+                                </td>
+                                <td><strong>${ct.clauseIso.code}</strong></td>
+                                <td class="small text-muted text-truncate" style="max-width: 300px;">${ct.description}</td>
+                                <td class="text-center">
+                                    <button class="btn btn-xs btn-dark shadow-sm" data-toggle="modal" data-target="#modalNC${ct.id}">Ouvrir une NC</button>
+                                </td>
+                            </tr>
+                            <c:set var="currentConstat" value="${ct}" scope="request"/>
+                            <jsp:include page="includes/modal_nc.jsp" />
+                        </c:forEach>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <h5 class="mt-4 mb-3 font-weight-bold text-dark"><i class="fas fa-tasks mr-2"></i>NC Ouvertes (Plan d'action en cours)</h5>
+            <div class="row">
+                <c:forEach var="nc" items="${ncsClauses}">
+                    <c:set var="currentNC" value="${nc}" scope="request" />
+                    <c:set var="ncColor" value="primary" scope="request" />
+                    <c:set var="targetPoint" value="${nc.constat.clauseIso.code}" scope="request" />
+                    <div class="col-md-6 mb-3">
+                        <%@ include file="includes/nc_card_template.jsp" %>
+                    </div>
+                </c:forEach>
+            </div>
+        </div>
+
+        <!-- ================= ONGLET ANNEXE A ================= -->
+        <div class="tab-pane fade" id="tabAnnexe" role="tabpanel">
+
+            <div class="card card-outline card-danger shadow-sm">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-exclamation-triangle mr-2"></i>Faiblesses techniques détectées</h3>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover table-valign-middle mb-0">
+                        <thead class="bg-light">
+                            <tr><th class="pl-4">Maturité</th><th>Contrôle</th><th>Écart</th><th class="text-center">Action</th></tr>
+                        </thead>
+                        <tbody>
+                        <c:forEach var="ct" items="${constatsAnnexePending}">
+                            <tr>
+                                <td class="pl-4"><span class="badge badge-danger">${ct.niveauMaturite}</span></td>
+                                <td><strong>${ct.controle.code}</strong></td>
+                                <td class="small text-muted">${ct.description}</td>
+                                <td class="text-center">
+                                    <button class="btn btn-xs btn-danger" data-toggle="modal" data-target="#modalNC${ct.id}">Traiter l'écart</button>
+                                </td>
+                            </tr>
+                            <c:set var="currentConstat" value="${ct}" scope="request"/>
+                            <jsp:include page="includes/modal_nc.jsp" />
+                        </c:forEach>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <h5 class="mt-4 mb-3 font-weight-bold text-danger"><i class="fas fa-tools mr-2"></i>Remédiations Annexe A</h5>
+            <div class="row">
+                <c:forEach var="nc" items="${ncsAnnexe}">
+                    <c:set var="currentNC" value="${nc}" scope="request" />
+                    <c:set var="ncColor" value="danger" scope="request" />
+                    <c:set var="targetPoint" value="${nc.constat.controle.code}" scope="request" />
+                    <div class="col-md-6 mb-3">
+                        <%@ include file="includes/nc_card_template.jsp" %>
+                    </div>
+                </c:forEach>
+            </div>
+        </div>
+    </div>
+
+    <!-- IA ASSIST SCRIPT (Ollama Integration) -->
+    <script>
+        function askOllama(btn) {
+            const id = btn.getAttribute('data-id');
+            const description = btn.getAttribute('data-desc');
+            const code = btn.getAttribute('data-code');
+            const textarea = document.getElementById('cause_' + id);
+
+            textarea.value = "⚡ Analyse par l'IA en cours...";
+            textarea.disabled = true;
+            btn.disabled = true;
+
+            fetch('/api/ai/suggest-nc', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ desc: description, code: code })
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Erreur serveur ' + response.status);
+                return response.text();
+            })
+            .then(data => {
+                textarea.value = data;
+                textarea.disabled = false;
+                btn.disabled = false;
+            })
+            .catch(error => {
+                console.error('Erreur Ollama:', error);
+                textarea.value = "❌ Erreur IA. Détails : " + error.message;
+                textarea.disabled = false;
+                btn.disabled = false;
+            });
+        }
+    </script>
+
+</t:layout>--%>
+
+<%--<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib uri="jakarta.tags.core" prefix="c" %>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -186,7 +442,7 @@
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-</html>
+</html>--%>
 
 
 
